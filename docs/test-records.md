@@ -174,3 +174,11 @@
 - 构建结果：0 Error(s)、0 Warning(s)，Build Time 17秒。
 - Program Size：Code=18866、RO-data=1050、RW-data=148、ZI-data=39452；应用层尚未引用驱动，链接器移除了未使用代码。
 - 本检查点仍未连接或测试ST7735S硬件。
+
+### 2026-07-26：M2显示自检集成构建
+
+- `app_tasks.c`已引用ST7735S BSP，并在默认任务启动时执行一次显示测试。
+- 最新日志包含`compiling app_tasks.c...`，构建结果为0 Error(s)、0 Warning(s)，Build Time 2秒。
+- Program Size：Code=21234、RO-data=1238、RW-data=148、ZI-data=39452。
+- 相比未引用驱动时Code和RO-data明显增加，确认BSP、字模及测试逻辑已进入最终固件。
+- 尚未接线和烧录，本记录不代表显示硬件测试通过。
