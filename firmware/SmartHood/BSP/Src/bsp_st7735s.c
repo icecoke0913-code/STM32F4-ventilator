@@ -33,7 +33,7 @@
 #define ST7735S_PIXEL_CHUNK      32U
 #define ST7735S_X_OFFSET          0U
 #define ST7735S_Y_OFFSET          0U
-#define ST7735S_MADCTL_PORTRAIT  0xC8U
+#define ST7735S_MADCTL_PORTRAIT  0xC0U
 
 static void ST7735S_Select(void)
 {
