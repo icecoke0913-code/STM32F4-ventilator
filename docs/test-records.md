@@ -158,3 +158,19 @@
 - 构建结果：0 Error(s)、0 Warning(s)，Build Time 17秒。
 - Program Size：Code=18868、RO-data=1048、RW-data=148、ZI-data=39452。
 - 本次仅验证生成代码和编译，尚未连接或测试ST7735S硬件。
+
+### 2026-07-25：M2最小字模模块构建
+
+- `BSP/Inc/fonts.h`和`BSP/Src/fonts.c`已创建，`fonts.c`已加入Keil BSP分组。
+- 最新全量构建日志包含`compiling fonts.c...`。
+- 构建结果：0 Error(s)、0 Warning(s)，Build Time 15秒。
+- Program Size：Code=18866、RO-data=1050、RW-data=148、ZI-data=39452；当前字体接口尚未被应用层引用，最终链接尺寸变化有限。
+
+### 2026-07-25：M2 ST7735S BSP首次构建
+
+- 已实现阻塞式SPI2传输、硬件复位、背光控制和ST7735S初始化序列。
+- 已实现地址窗口、RGB565连续像素写入、重复颜色填充、矩形、全屏、单像素和最小文本绘制。
+- Keil BSP分组包含`fonts.c`和`bsp_st7735s.c`，最新日志同时显示两者参与编译。
+- 构建结果：0 Error(s)、0 Warning(s)，Build Time 17秒。
+- Program Size：Code=18866、RO-data=1050、RW-data=148、ZI-data=39452；应用层尚未引用驱动，链接器移除了未使用代码。
+- 本检查点仍未连接或测试ST7735S硬件。
