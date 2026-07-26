@@ -2,7 +2,7 @@
 
 ## 当前状态
 
-- 当前阶段：M1基础功能完成，准备进入下一里程碑；10分钟稳定性测试保留为未测试。
+- 当前阶段：M2显示功能通过；M3拆分为M3A DHT11和M3B MQ-2，M3A设计已确认、尚未实施。
 - 当前工程：`firmware/SmartHood`已创建，可由Keil MDK-ARM编译。
 - 开发路线：分层增量开发。
 - 第一阶段范围：主控功能，不包含Bootloader。
@@ -22,7 +22,7 @@
 - TFT：ST7735S，SPI接口。
 - TFT实物：1.8英寸128×160，丝印顺序BLK/CS/DC/RST/SDA/SCL/VDD/GND。
 - 用户输入：PA0单按键；RST仅复位。
-- DHT11读取周期：1 s。
+- DHT11读取周期：2 s。
 - MQ-2：第一阶段使用ADC值或相对值，不直接标注ppm。
 - MQ-2模块：LM393 Flying-Fish模块，5V供电，AO必须分压后接STM32 ADC。
 - 电源模块：3A DC-DC多路模块，输入6～30V，提供VIN直通、5V、3.3V和GND。
@@ -36,7 +36,7 @@
 |---|---|---|
 | M1 | CubeMX、时钟、串口、FreeRTOS最小工程 | 功能通过：10分钟稳定性未测试 |
 | M2 | ST7735S显示 | 通过：颜色、方向、边框、文字及M1回归功能正常 |
-| M3 | DHT11、MQ-2采集与滤波 | 未开始 |
+| M3 | DHT11、MQ-2采集与滤波 | M3A DHT11设计已确认；M3B MQ-2等待测量与分压条件 |
 | M4 | TB6612、电机开环PWM | 未开始 |
 | M5 | 编码器测速与标定 | 未开始 |
 | M6 | PID闭环 | 未开始 |
@@ -195,8 +195,17 @@
 - PA0按下/松开、PA1每秒翻转、USART1心跳、显示稳定性、发热和异常重启回归检查均通过。
 - M2结论：功能通过。保留HAL阻塞式SPI2与5.25MHz配置，不启用DMA或LVGL；项目在此检查点停止，等待M3。
 
+### 2026-07-26：M3A DHT11设计确认
+
+- M3拆分为M3A DHT11与M3B MQ-2；当前先实施DHT11，MQ-2等待万用表、10 kΩ/15 kΩ分压电阻和面包板。
+- DHT11采用3.3V供电，DATA规划为PD0；TIM5配置为1 MHz、32位自由运行微秒计数器，不启用中断。
+- 新建独立SensorTask，每2秒读取一次DHT11；M3A只输出USART1日志，不修改TFT画面。
+- 驱动返回OK、TIMEOUT或CHECKSUM_ERROR；所有等待均带超时，断线不能卡死，重新接入后无需复位即可自动恢复。
+- 为支持默认任务和传感器任务共同输出日志，M3A将为DebugLog增加互斥保护。
+- 详细设计见`docs/superpowers/specs/2026-07-26-dht11-acquisition-design.md`；当前只完成设计，尚未配置CubeMX、编写驱动或连接硬件。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。
 
-项目总路线见 `docs/superpowers/plans/2026-07-20-stm32f407-smart-hood-master-plan.md`，当前里程碑计划见 `docs/superpowers/plans/2026-07-20-m1-cubemx-freertos-bringup.md`。
+项目总路线见 `docs/superpowers/plans/2026-07-20-stm32f407-smart-hood-master-plan.md`。当前已确认的下一阶段设计见 `docs/superpowers/specs/2026-07-26-dht11-acquisition-design.md`。
