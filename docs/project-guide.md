@@ -204,8 +204,15 @@
 - 为支持默认任务和传感器任务共同输出日志，M3A将为DebugLog增加互斥保护。
 - 详细设计见`docs/superpowers/specs/2026-07-26-dht11-acquisition-design.md`；当前只完成设计，尚未配置CubeMX、编写驱动或连接硬件。
 
+### 2026-07-26：M3A DHT11实施计划
+
+- 已将M3A拆分为基线检查、CubeMX配置、DebugLog互斥保护、DHT11 BSP、SensorTask集成、未连接测试、正常采集、断线恢复和最终合并等检查点。
+- CubeMX关键值确定为PD0输入上拉、TIM5内部时钟、PSC=83、ARR=0xFFFFFFFF、无TIM5中断；sensorTask为Normal优先级、256 Words动态栈。
+- 实施过程中由用户完成CubeMX、Keil、代码录入和硬件操作，助手逐步讲解、核对每个检查点并负责全部Git操作。
+- 详细计划见`docs/superpowers/plans/2026-07-26-m3a-dht11-acquisition.md`；下一步从M2基线全量编译和M3A功能分支开始。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。
 
-项目总路线见 `docs/superpowers/plans/2026-07-20-stm32f407-smart-hood-master-plan.md`。当前已确认的下一阶段设计见 `docs/superpowers/specs/2026-07-26-dht11-acquisition-design.md`。
+项目总路线见 `docs/superpowers/plans/2026-07-20-stm32f407-smart-hood-master-plan.md`。M3A设计见 `docs/superpowers/specs/2026-07-26-dht11-acquisition-design.md`，逐步实施计划见`docs/superpowers/plans/2026-07-26-m3a-dht11-acquisition.md`。
