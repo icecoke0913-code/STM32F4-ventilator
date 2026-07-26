@@ -222,3 +222,13 @@
 - 空外设Rebuild日志包含`compiling tim.c...`。
 - 空外设构建结果：Code=21886、RO-data=1286、RW-data=152、ZI-data=39528，0 Error(s)、0 Warning(s)，Build Time 16秒。
 - 本检查点尚未修改DebugLog、创建DHT11 BSP、烧录新固件或连接DHT11。
+
+### 2026-07-27：M3A DebugLog互斥保护回归
+
+- 修改内容：新增`DebugLog_Init()`，创建CMSIS-RTOS2互斥量；`DebugLog_Printf()`在格式化和USART1发送期间获取并释放互斥量。
+- 初始化位置：`MX_FREERTOS_Init()`的USER CODE Init区域，位于defaultTask和sensorTask创建之前。
+- 构建结果：Code=23150、RO-data=1286、RW-data=156、ZI-data=39524，0 Error(s)、0 Warning(s)，Build Time 2秒。
+- 烧录条件：DHT11、MQ-2、TB6612和电机均未连接，保留已验证的TFT、ST-Link与USART1调试连接。
+- 串口结果：启动信息和心跳正常，PA0松开/按下继续显示key=0/1，无乱码、半行交叉或重复启动。
+- 硬件回归：PA1继续每秒翻转，ST7735S保持M2测试画面，结果通过。
+- sensorTask仍为CubeMX空循环，本记录不代表DHT11采集功能通过。

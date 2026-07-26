@@ -220,6 +220,14 @@
 - CubeMX生成后，`tim.h/.c`、`MX_TIM5_Init()`、PD0 GPIO初始化和sensorTask均已核对；原`App_DefaultTask(argument)`委托、DFP 1.0.8与Flash下载算法保持有效。
 - 空外设全量构建通过：Code=21886、RO-data=1286、RW-data=152、ZI-data=39528，0错误、0警告。
 
+### 2026-07-27：M3A DebugLog多任务保护
+
+- `DebugLog_Init()`使用CMSIS-RTOS2动态创建互斥量，并在`MX_FREERTOS_Init()`中、两个任务创建前完成初始化；创建失败时进入`Error_Handler()`。
+- `DebugLog_Printf()`在格式化和USART1阻塞发送期间持有互斥量，所有正常出口均释放互斥量，避免defaultTask与后续sensorTask并发输出交叉。
+- 集成构建通过：Code=23150、RO-data=1286、RW-data=156、ZI-data=39524，0错误、0警告。
+- 烧录回归确认：启动日志、心跳、PA0按下/松开、PA1每秒翻转和ST7735S测试画面均正常，无重复启动或串口乱码。
+- 当前sensorTask仍为空循环，尚未创建或调用DHT11 BSP。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。

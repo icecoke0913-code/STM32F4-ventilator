@@ -27,6 +27,7 @@
 /* USER CODE BEGIN Includes */
 
 #include "app_tasks.h"
+#include "debug_log.h"
 
 /* USER CODE END Includes */
 
@@ -81,6 +82,11 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
   */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
+
+  if (!DebugLog_Init())
+  {
+    Error_Handler();
+  }
 
   /* USER CODE END Init */
 
