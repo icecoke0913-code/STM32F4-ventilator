@@ -61,6 +61,8 @@ void Error_Handler(void);
 #define USER_KEY_GPIO_Port GPIOA
 #define BOARD_LED_Pin GPIO_PIN_1
 #define BOARD_LED_GPIO_Port GPIOA
+#define DHT11_DATA_Pin GPIO_PIN_0
+#define DHT11_DATA_GPIO_Port GPIOD
 #define TFT_BLK_Pin GPIO_PIN_4
 #define TFT_BLK_GPIO_Port GPIOD
 #define TFT_RST_Pin GPIO_PIN_5

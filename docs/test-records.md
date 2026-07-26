@@ -211,3 +211,14 @@
 - 恢复测试：重新连接DATA后不按RST，在后续读取周期自动恢复OK。
 - 串口回归：心跳与DHT11日志无乱码、无明显交叉或丢失。
 - MQ-2保持未连接；M3-T2等待万用表、分压电阻和面包板。
+
+### 2026-07-26：M3A基线与CubeMX空外设构建
+
+- 功能分支：`codex/feature-m3a-dht11`。
+- M2基线Rebuild：Code=21234、RO-data=1238、RW-data=148、ZI-data=39452，0 Error(s)、0 Warning(s)，Build Time 14秒。
+- CubeMX配置：PD0=`DHT11_DATA`、Input Pull-up；TIM5内部时钟、PSC=83、ARR=0xFFFFFFFF、Up、DIV1、无中断。
+- sensorTask：osPriorityNormal、256 Words、Dynamic、入口`StartSensorTask`；当前为未接入业务的空循环。
+- 生成保护点：`App_DefaultTask(argument)`保留；Keil使用DFP 1.0.8和已验证的STM32F4xx Flash下载算法。
+- 空外设Rebuild日志包含`compiling tim.c...`。
+- 空外设构建结果：Code=21886、RO-data=1286、RW-data=152、ZI-data=39528，0 Error(s)、0 Warning(s)，Build Time 16秒。
+- 本检查点尚未修改DebugLog、创建DHT11 BSP、烧录新固件或连接DHT11。

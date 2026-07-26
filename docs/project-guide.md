@@ -211,6 +211,15 @@
 - 实施过程中由用户完成CubeMX、Keil、代码录入和硬件操作，助手逐步讲解、核对每个检查点并负责全部Git操作。
 - 详细计划见`docs/superpowers/plans/2026-07-26-m3a-dht11-acquisition.md`；下一步从M2基线全量编译和M3A功能分支开始。
 
+### 2026-07-26：M3A CubeMX基础配置
+
+- 已在`codex/feature-m3a-dht11`分支启动M3A；开始前M2基线全量编译与最终记录完全一致：Code=21234、RO-data=1238、RW-data=148、ZI-data=39452，0错误、0警告。
+- PD0已配置为`DHT11_DATA`输入并启用内部上拉，用于在传感器断线时保持确定高电平。
+- TIM5已启用内部时钟，PSC=83、ARR=0xFFFFFFFF、向上计数、时钟不分频、自动重装预装载关闭、无TIM5中断；计数频率为1 MHz。
+- FreeRTOS新增`sensorTask`：Normal优先级、256 Words动态栈、入口`StartSensorTask`；当前仍为CubeMX默认空循环。
+- CubeMX生成后，`tim.h/.c`、`MX_TIM5_Init()`、PD0 GPIO初始化和sensorTask均已核对；原`App_DefaultTask(argument)`委托、DFP 1.0.8与Flash下载算法保持有效。
+- 空外设全量构建通过：Code=21886、RO-data=1286、RW-data=152、ZI-data=39528，0错误、0警告。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。
