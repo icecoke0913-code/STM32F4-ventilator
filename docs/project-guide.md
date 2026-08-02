@@ -255,6 +255,7 @@
 - 注释改造只允许改变注释、空白和文件编码；验收要求Program Size保持Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，并比较修改前后HEX哈希。
 - 以后助手提供的自编代码默认包含中文注释，并在代码后说明实现流程、设计原因、关键参数和易错点。
 - 详细设计见`docs/superpowers/specs/2026-08-02-chinese-code-commenting-design.md`。
+- 分步实施计划见`docs/superpowers/plans/2026-08-02-chinese-code-comments.md`，按UTF-8试验、App、DHT11、ST7735S/字模、FreeRTOS USER CODE和零行为变化验收依次执行。
 
 ## 设计依据
 
