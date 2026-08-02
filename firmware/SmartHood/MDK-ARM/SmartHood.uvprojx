@@ -390,6 +390,11 @@
               <FileType>1</FileType>
               <FilePath>..\BSP\Src\bsp_st7735s.c</FilePath>
             </File>
+            <File>
+              <FileName>bsp_dht11.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\BSP\Src\bsp_dht11.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

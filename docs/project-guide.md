@@ -228,6 +228,15 @@
 - 烧录回归确认：启动日志、心跳、PA0按下/松开、PA1每秒翻转和ST7735S测试画面均正常，无重复启动或串口乱码。
 - 当前sensorTask仍为空循环，尚未创建或调用DHT11 BSP。
 
+### 2026-08-02：M3A DHT11 BSP驱动
+
+- 新增`BSP/Inc/bsp_dht11.h`和`BSP/Src/bsp_dht11.c`，接口使用扩大10倍的整数表示温度与湿度，并区分OK、TIMEOUT和CHECKSUM_ERROR。
+- 驱动使用TIM5自由运行计数器实现微秒延时和所有边沿超时；PD0在开漏输出与输入上拉之间动态切换。
+- 主机启动信号为约18 ms低电平；释放总线后在保存并屏蔽中断的状态下等待30 μs，再采集DHT11响应和40位数据，避免任务切换干扰短脉冲测量。
+- 所有采集失败路径均在返回前恢复进入读取前的中断状态和PD0输入模式；无无限等待循环。
+- `bsp_dht11.c`已加入Keil BSP分组并参与全量编译；构建为0错误、0警告。应用层尚未调用驱动，因此程序大小仍为Code=23150、RO-data=1286、RW-data=156、ZI-data=39524。
+- 当前尚未烧录DHT11采集逻辑或连接DHT11，下一步接入`App_SensorTask()`。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。

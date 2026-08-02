@@ -524,6 +524,7 @@ Options for Target → C/C++ → Include Paths中应已存在：
 #include "tim.h"
 
 #define DHT11_START_LOW_US       18000U
+#define DHT11_RELEASE_US            30U
 #define DHT11_EDGE_TIMEOUT_US      120U
 #define DHT11_ONE_THRESHOLD_US      50U
 #define DHT11_DATA_BYTES              5U
@@ -608,10 +609,15 @@ DHT11_Status_t BSP_DHT11_Read(DHT11_Data_t *data)
 
     DHT11_SetOutputLow();
     DHT11_DelayUs(DHT11_START_LOW_US);
-    DHT11_SetInput();
 
     saved_primask = __get_PRIMASK();
     __disable_irq();
+
+    HAL_GPIO_WritePin(DHT11_DATA_GPIO_Port,
+                      DHT11_DATA_Pin,
+                      GPIO_PIN_SET);
+    DHT11_DelayUs(DHT11_RELEASE_US);
+    DHT11_SetInput();
 
     if (!DHT11_WaitForPin(GPIO_PIN_RESET, DHT11_EDGE_TIMEOUT_US) ||
         !DHT11_WaitForPin(GPIO_PIN_SET, DHT11_EDGE_TIMEOUT_US) ||
@@ -689,6 +695,7 @@ DHT11_Status_t BSP_DHT11_Read(DHT11_Data_t *data)
 ```text
 所有等待调用DHT11_WaitForPin()并带120 μs超时
 18 ms启动阶段没有关闭中断
+释放总线后在关中断状态等待30 μs，再检测传感器响应
 关中断后不存在直接return
 saved_primask为0时才重新开中断
 TIMEOUT和CHECKSUM_ERROR不会写入data
