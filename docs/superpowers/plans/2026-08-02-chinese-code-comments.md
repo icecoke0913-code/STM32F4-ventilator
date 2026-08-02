@@ -68,7 +68,7 @@ Keil:
 - Modify: `firmware/SmartHood/App/Inc/debug_log.h`
 - Verify: `firmware/SmartHood/MDK-ARM/SmartHood/SmartHood.build_log.htm`
 
-- [ ] **Step 1: 助手记录基线状态**
+- [x] **Step 1: 助手记录基线状态**
 
 核对当前分支、工作区和基线哈希：
 
@@ -78,7 +78,7 @@ HEAD: b76f8ec或其后仅含注释设计/计划的提交
 HEX SHA-256: 0DC8FC5B0E3CDCCAF4860CBD36F1DF81B97263A7F2E895ED10C4A2DDCA7C96E8
 ```
 
-- [ ] **Step 2: 助手为debug_log.h添加试验注释**
+- [x] **Step 2: 助手为debug_log.h添加试验注释**
 
 注释内容必须使用UTF-8，并保持接口声明不变：
 
@@ -111,7 +111,7 @@ void DebugLog_Printf(const char *format, ...);
 #endif
 ```
 
-- [ ] **Step 3: 用户检查Keil中文显示**
+- [x] **Step 3: 用户检查Keil中文显示**
 
 在Keil中重新打开或刷新`debug_log.h`，确认：
 
@@ -123,7 +123,7 @@ void DebugLog_Printf(const char *format, ...);
 
 如果显示乱码，停止批量注释，先调整Keil文件编码显示；不得将该文件另存为GBK后继续。
 
-- [ ] **Step 4: 用户执行Build**
+- [x] **Step 4: 用户执行Build**
 
 执行：
 
@@ -138,7 +138,7 @@ F7 / Build Target
 Program Size保持Code=24002、RO-data=1286、RW-data=156、ZI-data=39524
 ```
 
-- [ ] **Step 5: 助手提交UTF-8试验检查点**
+- [x] **Step 5: 助手提交UTF-8试验检查点**
 
 提交信息：
 
