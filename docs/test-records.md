@@ -242,3 +242,13 @@
 - 构建结果：Code=23150、RO-data=1286、RW-data=156、ZI-data=39524，0 Error(s)、0 Warning(s)，Build Time 18秒。
 - 程序大小未增加的原因是应用层尚未调用DHT11接口，未引用驱动代码可被链接器移除。
 - 本检查点仅代表驱动独立编译通过，尚未进行TIMEOUT或真实传感器测试。
+
+### 2026-08-02：M3A SensorTask集成构建
+
+- `StartSensorTask()`已委托`App_SensorTask()`，不再运行CubeMX默认1 ms空循环。
+- SensorTask行为：启动TIM5、等待2秒、读取DHT11、输出状态、延迟2秒后重试。
+- 首次构建结果为0 Error(s)、1 Warning(s)；唯一警告为`app_tasks.c`文件末行缺少换行符，不涉及程序逻辑。
+- 修正文件末尾换行后重新全量构建，日志包含`compiling bsp_dht11.c...`、`compiling app_tasks.c...`和`compiling freertos.c...`。
+- 最终结果：Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0 Error(s)、0 Warning(s)，Build Time 17秒。
+- 程序大小相对BSP未引用阶段增加，确认DHT11驱动与SensorTask日志逻辑进入最终镜像。
+- 本记录仅确认软件集成构建，尚未烧录或执行未连接TIMEOUT测试。

@@ -147,11 +147,8 @@ void StartDefaultTask(void *argument)
 void StartSensorTask(void *argument)
 {
   /* USER CODE BEGIN StartSensorTask */
-  /* Infinite loop */
-  for(;;)
-  {
-    osDelay(1);
-  }
+
+  App_SensorTask(argument);
   /* USER CODE END StartSensorTask */
 }
 

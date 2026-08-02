@@ -237,6 +237,15 @@
 - `bsp_dht11.c`已加入Keil BSP分组并参与全量编译；构建为0错误、0警告。应用层尚未调用驱动，因此程序大小仍为Code=23150、RO-data=1286、RW-data=156、ZI-data=39524。
 - 当前尚未烧录DHT11采集逻辑或连接DHT11，下一步接入`App_SensorTask()`。
 
+### 2026-08-02：M3A SensorTask集成
+
+- `app_tasks.h`新增`App_SensorTask()`接口；CubeMX生成的`StartSensorTask()`已在USER CODE区域委托该应用任务。
+- SensorTask启动TIM5，等待DHT11上电稳定2秒，随后每约2秒读取一次并输出OK、TIMEOUT或CHECKSUM_ERROR日志。
+- 温湿度日志使用扩大10倍的整数拆分为一位小数，不启用浮点格式化；负温度保留符号处理。
+- 首次全量构建发现`app_tasks.c`末行缺少换行符，ARMCC报告1条格式警告；补充文件末尾换行后警告清零。
+- 最终集成构建：Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0错误、0警告，Build Time 17秒。
+- 当前固件尚未烧录测试，DHT11仍保持未连接；下一步验证未连接时稳定输出TIMEOUT且不影响M1/M2功能。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。

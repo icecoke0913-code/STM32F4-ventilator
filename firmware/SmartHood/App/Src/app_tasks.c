@@ -135,3 +135,64 @@ void App_DefaultTask(void *argument)
         osDelay(1000U);
     }
 }
+
+void App_SensorTask(void *argument)
+{
+    DHT11_Data_t data = {0};
+
+    (void)argument;
+
+    if (!BSP_DHT11_Init())
+    {
+        DebugLog_Printf("DHT11 timer start failed\r\n");
+
+        for (;;)
+        {
+            osDelay(2000U);
+        }
+    }
+
+    osDelay(2000U);
+
+    for (;;)
+    {
+        DHT11_Status_t status = BSP_DHT11_Read(&data);
+
+        if (status == DHT11_STATUS_OK)
+        {
+            int32_t temperature_x10 = data.temperature_x10;
+            uint32_t temperature_magnitude;
+
+            if (temperature_x10 < 0)
+            {
+                temperature_magnitude =
+                    (uint32_t)(-temperature_x10);
+            }
+            else
+            {
+                temperature_magnitude =
+                    (uint32_t)temperature_x10;
+            }
+
+            DebugLog_Printf(
+                "DHT11 temp=%s%lu.%luC "
+                "humidity=%lu.%lu%% status=OK\r\n",
+                (temperature_x10 < 0) ? "-" : "",
+                (unsigned long)(temperature_magnitude / 10U),
+                (unsigned long)(temperature_magnitude % 10U),
+                (unsigned long)(data.humidity_x10 / 10U),
+                (unsigned long)(data.humidity_x10 % 10U));
+        }
+        else if (status == DHT11_STATUS_CHECKSUM_ERROR)
+        {
+            DebugLog_Printf(
+                "DHT11 status=CHECKSUM_ERROR\r\n");
+        }
+        else
+        {
+            DebugLog_Printf("DHT11 status=TIMEOUT\r\n");
+        }
+
+        osDelay(2000U);
+    }
+}
