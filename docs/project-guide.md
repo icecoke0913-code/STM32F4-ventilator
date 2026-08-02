@@ -246,6 +246,16 @@
 - 最终集成构建：Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0错误、0警告，Build Time 17秒。
 - 当前固件尚未烧录测试，DHT11仍保持未连接；下一步验证未连接时稳定输出TIMEOUT且不影响M1/M2功能。
 
+### 2026-08-02：自编代码中文注释规范确认
+
+- 按用户要求，M3A未连接TIMEOUT测试暂缓，先为全部自编App/BSP代码和Core的USER CODE区域补充结构化中文注释。
+- 不修改CubeMX生成区、HAL、LL、CMSIS、FreeRTOS或Keil设备包源码，避免生成覆盖和无关第三方改动。
+- 注释重点覆盖模块职责、公开接口、任务流程、DHT11时序、ST7735S坐标/颜色、DebugLog互斥和错误恢复；不机械逐行翻译，不逐字节注释字模。
+- 代码保持UTF-8，通过小文件试验验证Keil 5.24与ARMCC 5.06兼容后再批量修改。
+- 注释改造只允许改变注释、空白和文件编码；验收要求Program Size保持Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，并比较修改前后HEX哈希。
+- 以后助手提供的自编代码默认包含中文注释，并在代码后说明实现流程、设计原因、关键参数和易错点。
+- 详细设计见`docs/superpowers/specs/2026-08-02-chinese-code-commenting-design.md`。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。
