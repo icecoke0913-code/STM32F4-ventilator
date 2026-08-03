@@ -1,6 +1,6 @@
 # M3A DHT11 Acquisition Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [x]`) syntax for tracking.
 
 **Goal:** 在现有SmartHood固件中加入每2秒读取一次的DHT11采集任务，实现USART1日志、超时/校验错误报告和断线自动恢复，同时保持M1与M2功能正常。
 
@@ -60,7 +60,7 @@ docs/test-records.md
 - Inspect: `firmware/SmartHood/MDK-ARM/SmartHood.build_log.htm`
 - Inspect: `firmware/SmartHood/SmartHood.ioc`
 
-- [ ] **Step 1: 由助手检查Git基线**
+- [x] **Step 1: 由助手检查Git基线**
 
 应满足：
 
@@ -72,7 +72,7 @@ docs/test-records.md
 
 若远端网络恢复，助手先推送尚未同步的设计提交；推送失败不阻止本地M3A教学，但必须明确记录本地领先状态。
 
-- [ ] **Step 2: 由助手创建功能分支**
+- [x] **Step 2: 由助手创建功能分支**
 
 分支名：
 
@@ -82,7 +82,7 @@ codex/feature-m3a-dht11
 
 所有Git命令、暂存、提交、推送和最终合并均由助手执行，用户不需要在PowerShell中操作Git。
 
-- [ ] **Step 3: 用户在Keil执行M2基线全量编译**
+- [x] **Step 3: 用户在Keil执行M2基线全量编译**
 
 操作：
 
@@ -111,7 +111,7 @@ Code=21234, RO-data=1238, RW-data=148, ZI-data=39452
 - Generate: `firmware/SmartHood/Core/Src/tim.c`
 - Modify: `firmware/SmartHood/Core/Src/main.c`
 
-- [ ] **Step 1: 打开现有IOC并配置PD0**
+- [x] **Step 1: 打开现有IOC并配置PD0**
 
 在CubeMX打开：
 
@@ -135,7 +135,7 @@ GPIO Pull-up/Pull-down：Pull-up
 
 这里启用内部上拉的目的，是在DHT11拔掉时让PD0保持确定的高电平；正常连接后，三针模块的板载上拉仍是主要上拉。
 
-- [ ] **Step 2: 启用TIM5内部时钟**
+- [x] **Step 2: 启用TIM5内部时钟**
 
 在Timers → TIM5中选择：
 
@@ -161,7 +161,7 @@ APB1 Timer Clock = 84 MHz
 1个计数 = 1 μs
 ```
 
-- [ ] **Step 3: 确认TIM5不使用中断**
+- [x] **Step 3: 确认TIM5不使用中断**
 
 在TIM5的NVIC Settings中确认：
 
@@ -171,7 +171,7 @@ TIM5 global interrupt：未勾选
 
 M3A只读取硬件计数器，不使用更新中断、DMA、输入捕获或PWM。
 
-- [ ] **Step 4: 截图核对后再生成**
+- [x] **Step 4: 截图核对后再生成**
 
 向助手提供两张截图：
 
@@ -193,7 +193,7 @@ M3A只读取硬件计数器，不使用更新中断、DMA、输入捕获或PWM�
 - Create: `firmware/SmartHood/Core/Inc/tim.h`
 - Create: `firmware/SmartHood/Core/Src/tim.c`
 
-- [ ] **Step 1: 新建FreeRTOS任务**
+- [x] **Step 1: 新建FreeRTOS任务**
 
 进入Middleware and Software Packs → FREERTOS → Tasks and Queues，保留现有defaultTask并新增：
 
@@ -211,7 +211,7 @@ Control Block Name：NULL
 
 不创建队列、信号量、软件定时器或额外互斥量；DebugLog互斥量由应用模块创建。
 
-- [ ] **Step 2: 检查FreeRTOS总堆**
+- [x] **Step 2: 检查FreeRTOS总堆**
 
 保持：
 
@@ -221,11 +221,11 @@ configTOTAL_HEAP_SIZE = 32768 Bytes
 
 两个256 Words任务栈和一个互斥量可以容纳在当前32 KB FreeRTOS堆中，不需要扩大。
 
-- [ ] **Step 3: 生成代码**
+- [x] **Step 3: 生成代码**
 
 点击Generate Code。若CubeMX提示打开工程，选择Open Project或回到Keil手动打开工程均可。
 
-- [ ] **Step 4: 生成后保护点检查**
+- [x] **Step 4: 生成后保护点检查**
 
 在`firmware/SmartHood/Core/Src/main.c`中应出现：
 
@@ -252,7 +252,7 @@ void StartDefaultTask(void *argument)
 
 同时应生成`StartSensorTask()`及sensorTask属性。此时它仍是CubeMX默认空循环，尚未接入应用层。
 
-- [ ] **Step 5: 用户执行空外设全量编译**
+- [x] **Step 5: 用户执行空外设全量编译**
 
 Keil执行：
 
@@ -269,7 +269,7 @@ Project → Rebuild all target files
 
 若旧DFP导致目标名称变化，只在Keil明确报设备错误时恢复已验证的STM32F407VE/Flash算法配置；不要预先改动。
 
-- [ ] **Step 6: 由助手提交CubeMX检查点**
+- [x] **Step 6: 由助手提交CubeMX检查点**
 
 建议提交信息：
 
@@ -288,7 +288,7 @@ feat: configure TIM5 and DHT11 sensor task
 - Modify: `firmware/SmartHood/App/Src/debug_log.c`
 - Modify: `firmware/SmartHood/Core/Src/freertos.c`
 
-- [ ] **Step 1: 更新debug_log.h接口**
+- [x] **Step 1: 更新debug_log.h接口**
 
 将`firmware/SmartHood/App/Inc/debug_log.h`完整替换为：
 
@@ -304,7 +304,7 @@ void DebugLog_Printf(const char *format, ...);
 #endif
 ```
 
-- [ ] **Step 2: 先编译验证接口尚未被调用**
+- [x] **Step 2: 先编译验证接口尚未被调用**
 
 在尚未修改`debug_log.c`和`freertos.c`前执行Build。
 
@@ -316,7 +316,7 @@ void DebugLog_Printf(const char *format, ...);
 
 原因：新增函数声明本身不参与链接。这个检查确认头文件语法和`stdbool.h`与ARMCC 5兼容。
 
-- [ ] **Step 3: 更新debug_log.c实现**
+- [x] **Step 3: 更新debug_log.c实现**
 
 将`firmware/SmartHood/App/Src/debug_log.c`完整替换为：
 
@@ -380,7 +380,7 @@ void DebugLog_Printf(const char *format, ...)
 }
 ```
 
-- [ ] **Step 4: 在freertos.c中初始化互斥量**
+- [x] **Step 4: 在freertos.c中初始化互斥量**
 
 在`firmware/SmartHood/Core/Src/freertos.c`的USER CODE Includes区域保留`app_tasks.h`并加入：
 
@@ -408,7 +408,7 @@ void DebugLog_Printf(const char *format, ...)
 
 此位置运行在`osKernelInitialize()`之后、任务创建之前，可以创建CMSIS-RTOS2互斥量，并保证两个任务启动前日志模块已就绪。
 
-- [ ] **Step 5: 全量编译验证日志互斥量**
+- [x] **Step 5: 全量编译验证日志互斥量**
 
 预期：
 
@@ -418,7 +418,7 @@ compiling freertos.c...
 0 Error(s), 0 Warning(s)
 ```
 
-- [ ] **Step 6: 烧录进行M1/M2日志回归**
+- [x] **Step 6: 烧录进行M1/M2日志回归**
 
 此时sensorTask仍为空循环。烧录后应继续看到：
 
@@ -430,7 +430,7 @@ heartbeat=... key=... tick=...
 
 PA0、PA1和TFT现象保持不变。
 
-- [ ] **Step 7: 由助手提交日志保护检查点**
+- [x] **Step 7: 由助手提交日志保护检查点**
 
 建议提交信息：
 
@@ -445,7 +445,7 @@ refactor: make debug logging thread safe
 **Files:**
 - Create: `firmware/SmartHood/BSP/Inc/bsp_dht11.h`
 
-- [ ] **Step 1: 创建bsp_dht11.h**
+- [x] **Step 1: 创建bsp_dht11.h**
 
 创建`firmware/SmartHood/BSP/Inc/bsp_dht11.h`，完整内容为：
 
@@ -477,7 +477,7 @@ DHT11_Status_t BSP_DHT11_Read(DHT11_Data_t *data);
 
 接口约定：`BSP_DHT11_Read()`的调用者必须传入有效的非NULL指针；只有返回`DHT11_STATUS_OK`时，结构体中的数据才会更新。
 
-- [ ] **Step 2: 在Keil中确认BSP包含路径**
+- [x] **Step 2: 在Keil中确认BSP包含路径**
 
 Options for Target → C/C++ → Include Paths中应已存在：
 
@@ -487,7 +487,7 @@ Options for Target → C/C++ → Include Paths中应已存在：
 
 这是M2已建立的路径，不重复添加。
 
-- [ ] **Step 3: 头文件语法检查**
+- [x] **Step 3: 头文件语法检查**
 
 暂时在`app_tasks.c`包含区加入：
 
@@ -511,7 +511,7 @@ Options for Target → C/C++ → Include Paths中应已存在：
 - Create: `firmware/SmartHood/BSP/Src/bsp_dht11.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 创建bsp_dht11.c**
+- [x] **Step 1: 创建bsp_dht11.c**
 
 创建`firmware/SmartHood/BSP/Src/bsp_dht11.c`，完整内容为：
 
@@ -688,7 +688,7 @@ DHT11_Status_t BSP_DHT11_Read(DHT11_Data_t *data)
 }
 ```
 
-- [ ] **Step 2: 检查关键安全出口**
+- [x] **Step 2: 检查关键安全出口**
 
 逐项人工核对：
 
@@ -702,7 +702,7 @@ TIMEOUT和CHECKSUM_ERROR不会写入data
 PD0在退出前恢复输入上拉
 ```
 
-- [ ] **Step 3: 将源文件加入Keil BSP分组**
+- [x] **Step 3: 将源文件加入Keil BSP分组**
 
 在Keil中：
 
@@ -720,7 +720,7 @@ bsp_st7735s.c
 bsp_dht11.c
 ```
 
-- [ ] **Step 4: 编译尚未调用的驱动**
+- [x] **Step 4: 编译尚未调用的驱动**
 
 执行Rebuild。预期日志包含：
 
@@ -731,7 +731,7 @@ compiling bsp_dht11.c...
 
 由于应用层尚未调用驱动，链接器可能移除部分DHT11代码，因此程序大小变化不是本检查点的判断标准。
 
-- [ ] **Step 5: 由助手提交BSP检查点**
+- [x] **Step 5: 由助手提交BSP检查点**
 
 建议提交信息：
 
@@ -748,7 +748,7 @@ feat: add TIM5-based DHT11 BSP driver
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/Core/Src/freertos.c`
 
-- [ ] **Step 1: 更新app_tasks.h**
+- [x] **Step 1: 更新app_tasks.h**
 
 将`firmware/SmartHood/App/Inc/app_tasks.h`完整替换为：
 
@@ -762,7 +762,7 @@ void App_SensorTask(void *argument);
 #endif
 ```
 
-- [ ] **Step 2: 在app_tasks.c中加入DHT11头文件**
+- [x] **Step 2: 在app_tasks.c中加入DHT11头文件**
 
 确认文件头部包含：
 
@@ -780,7 +780,7 @@ void App_SensorTask(void *argument);
 
 不要删除现有`App_RunDisplayTest()`和`App_DefaultTask()`。
 
-- [ ] **Step 3: 在app_tasks.c末尾新增App_SensorTask**
+- [x] **Step 3: 在app_tasks.c末尾新增App_SensorTask**
 
 在现有`App_DefaultTask()`之后加入：
 
@@ -845,7 +845,7 @@ void App_SensorTask(void *argument)
 
 首次读取前延迟2秒，用于等待DHT11上电稳定。之后每次读取完成后延迟2秒，实际日志周期会比2秒多约18 ms，符合本阶段要求。
 
-- [ ] **Step 4: 委托CubeMX生成的StartSensorTask**
+- [x] **Step 4: 委托CubeMX生成的StartSensorTask**
 
 在`firmware/SmartHood/Core/Src/freertos.c`找到CubeMX生成的`StartSensorTask()`，将USER CODE区域改为：
 
@@ -860,7 +860,7 @@ void StartSensorTask(void *argument)
 
 只修改USER CODE区域，不删除CubeMX生成的函数声明、任务句柄或属性。
 
-- [ ] **Step 5: 全量编译验证完整链接**
+- [x] **Step 5: 全量编译验证完整链接**
 
 执行Rebuild。预期：
 
@@ -874,7 +874,7 @@ linking...
 
 程序Code和RO-data应比M2增加，证明DHT11驱动和日志逻辑进入最终镜像；不预设精确字节数。
 
-- [ ] **Step 6: 由助手提交任务集成检查点**
+- [x] **Step 6: 由助手提交任务集成检查点**
 
 建议提交信息：
 
@@ -890,11 +890,11 @@ feat: integrate periodic DHT11 sensor task
 - Verify: `firmware/SmartHood/MDK-ARM/SmartHood.hex`
 - Update after test: `docs/test-records.md`
 
-- [ ] **Step 1: 保持DHT11完全未连接**
+- [x] **Step 1: 保持DHT11完全未连接**
 
 此测试只连接当前已验证的开发板、ST-Link、USB转TTL和TFT。MQ-2、TB6612、电机和DHT11均不连接。
 
-- [ ] **Step 2: 烧录并复位**
+- [x] **Step 2: 烧录并复位**
 
 预期启动日志：
 
@@ -917,7 +917,7 @@ DHT11 status=TIMEOUT
 heartbeat=3 key=0 tick=...
 ```
 
-- [ ] **Step 3: 验证TIMEOUT不会阻塞系统**
+- [x] **Step 3: 验证TIMEOUT不会阻塞系统**
 
 连续观察至少30秒：
 
@@ -932,11 +932,11 @@ TFT保持M2最终测试画面
 
 若DHT11未连接却频繁报告CHECKSUM_ERROR而不是TIMEOUT，先检查PD0是否确实配置了内部Pull-up。
 
-- [ ] **Step 4: 记录未连接测试结果**
+- [x] **Step 4: 记录未连接测试结果**
 
 在`docs/test-records.md`的M3-T1记录中追加构建大小、TIMEOUT日志样本、30秒观察结果和M1/M2回归结果。
 
-- [ ] **Step 5: 由助手提交安全测试记录**
+- [x] **Step 5: 由助手提交安全测试记录（并入中文注释验收提交）**
 
 建议提交信息：
 
@@ -952,7 +952,7 @@ test: validate DHT11 timeout behavior
 - Verify: `docs/hardware-connections.md`
 - Update: `docs/test-records.md`
 
-- [ ] **Step 1: 断开全部供电**
+- [x] **Step 1: 断开全部供电**
 
 在移动接线前断开：
 
@@ -964,7 +964,7 @@ USB转TTL
 
 确认TFT背光和开发板电源灯均熄灭后再接DHT11。
 
-- [ ] **Step 2: 确认DHT11三针丝印**
+- [x] **Step 2: 确认DHT11三针丝印**
 
 实物必须能明确识别：
 
@@ -976,7 +976,7 @@ GND或-
 
 若丝印不清楚，用户发送正反面清晰照片，由助手核对后继续。不得根据常见模块针序直接猜测。
 
-- [ ] **Step 3: 按确认后的信号连接**
+- [x] **Step 3: 按确认后的信号连接**
 
 ```text
 DHT11 VCC  → STM32 3.3V
@@ -986,7 +986,7 @@ DHT11 GND  → STM32 GND
 
 MQ-2保持不连接。不要将DHT11接到5V。
 
-- [ ] **Step 4: 上电观察自动恢复**
+- [x] **Step 4: 上电观察自动恢复**
 
 无需重新编译。上电后预期在首次2秒等待结束后出现：
 
@@ -996,7 +996,7 @@ DHT11 temp=xx.xC humidity=xx.x% status=OK
 
 若最初一两次TIMEOUT后恢复OK，可以记录但不立即判定失败；先检查接触稳定性并观察后续读数。
 
-- [ ] **Step 5: 连续读取验收**
+- [x] **Step 5: 连续读取验收**
 
 记录至少10次连续OK读数，并核对：
 
@@ -1008,7 +1008,7 @@ DHT11 temp=xx.xC humidity=xx.x% status=OK
 PA0、PA1和TFT保持正常
 ```
 
-- [ ] **Step 6: 湿度变化测试**
+- [x] **Step 6: 湿度变化测试**
 
 距DHT11适当距离缓慢哈气一次，不要让水汽凝结。接下来数个采样周期内湿度应出现可观察变化，并逐渐回落。
 
@@ -1021,11 +1021,11 @@ PA0、PA1和TFT保持正常
 - Update: `docs/project-guide.md`
 - Update: `docs/hardware-connections.md`
 
-- [ ] **Step 1: 记录断线前有效值**
+- [x] **Step 1: 记录断线前有效值**
 
 确认串口正在稳定输出OK日志，记录最后一条温湿度值。
 
-- [ ] **Step 2: 只断开DATA线**
+- [x] **Step 2: 只断开DATA线**
 
 为降低误接风险，优先断开DHT11模块一侧的DATA杜邦线，不移动3.3V和GND。预期后续周期出现：
 
@@ -1035,7 +1035,7 @@ DHT11 status=TIMEOUT
 
 同时确认默认任务心跳、PA0、PA1和TFT没有中断。
 
-- [ ] **Step 3: 重新接回DATA线**
+- [x] **Step 3: 重新接回DATA线**
 
 不按RST、不重新烧录。预期在后续读取周期自动恢复：
 
@@ -1043,11 +1043,11 @@ DHT11 status=TIMEOUT
 DHT11 temp=xx.xC humidity=xx.x% status=OK
 ```
 
-- [ ] **Step 4: 重复一次断线恢复**
+- [x] **Step 4: 重复一次断线恢复**
 
 再次执行一次DATA断开和接回，确认行为可重复。若恢复后持续CHECKSUM_ERROR，断电后重新插紧DATA线再测试，不能通过反复修改时序阈值掩盖接触问题。
 
-- [ ] **Step 5: 完成M3-T1记录**
+- [x] **Step 5: 完成M3-T1记录**
 
 文档至少记录：
 
@@ -1063,7 +1063,7 @@ PA0、PA1、USART1和TFT回归结果
 发现的问题及解决方式
 ```
 
-- [ ] **Step 6: 由助手提交M3A验收结果**
+- [x] **Step 6: 由助手提交M3A验收结果**
 
 建议提交信息：
 
@@ -1079,7 +1079,7 @@ feat: validate DHT11 acquisition and recovery
 - Verify: all modified project files
 - Update if needed: `docs/project-guide.md`
 
-- [ ] **Step 1: 最终全量编译**
+- [x] **Step 1: 最终全量编译**
 
 用户在Keil执行Rebuild，并提供完整摘要。必须满足：
 
@@ -1087,7 +1087,7 @@ feat: validate DHT11 acquisition and recovery
 0 Error(s), 0 Warning(s)
 ```
 
-- [ ] **Step 2: 最终硬件回归**
+- [x] **Step 2: 最终硬件回归**
 
 至少观察1分钟：
 
@@ -1100,7 +1100,7 @@ TFT显示稳定
 无异常复位、明显发热或日志交叉
 ```
 
-- [ ] **Step 3: 由助手检查Git与文档一致性**
+- [x] **Step 3: 由助手检查Git与文档一致性**
 
 检查内容：
 
@@ -1112,11 +1112,11 @@ Keil工程包含bsp_dht11.c
 MQ-2仍明确标记为未接入
 ```
 
-- [ ] **Step 4: 由助手合并回main并推送**
+- [x] **Step 4: 由助手合并回main并推送**
 
 只有最终构建和硬件验收均通过后，助手才将功能分支合并回`main`并推送GitHub。网络不可用时保留本地提交和领先状态，网络恢复后补推送，不重复实施M3A。
 
-- [ ] **Step 5: 进入M3B或下一可执行里程碑**
+- [x] **Step 5: 进入M3B或下一可执行里程碑**
 
 M3B MQ-2仍需要：
 
