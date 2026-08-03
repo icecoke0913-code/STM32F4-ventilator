@@ -256,6 +256,10 @@
 - 以后助手提供的自编代码默认包含中文注释，并在代码后说明实现流程、设计原因、关键参数和易错点。
 - 详细设计见`docs/superpowers/specs/2026-08-02-chinese-code-commenting-design.md`。
 - 分步实施计划见`docs/superpowers/plans/2026-08-02-chinese-code-comments.md`，按UTF-8试验、App、DHT11、ST7735S/字模、FreeRTOS USER CODE和零行为变化验收依次执行。
+- UTF-8小文件试验已通过Keil显示与编译检查；随后按用户要求一次性完成其余App/BSP及`freertos.c` USER CODE中文注释。
+- 静态审计将注释和空白剥离后与注释前基线逐文件比较，11个目标文件的有效代码全部一致。
+- 最终Rebuild保持Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0错误、0警告；HEX SHA-256仍为`0DC8FC5B0E3CDCCAF4860CBD36F1DF81B97263A7F2E895ED10C4A2DDCA7C96E8`。
+- 用户已确认烧录后的心跳、DHT11未连接TIMEOUT、PA0、PA1和ST7735S画面均正常，中文注释改造验收通过。
 
 ## 设计依据
 

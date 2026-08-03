@@ -252,3 +252,15 @@
 - 最终结果：Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0 Error(s)、0 Warning(s)，Build Time 17秒。
 - 程序大小相对BSP未引用阶段增加，确认DHT11驱动与SensorTask日志逻辑进入最终镜像。
 - 本记录仅确认软件集成构建，尚未烧录或执行未连接TIMEOUT测试。
+
+### 2026-08-03：中文注释零行为变化验收与M3A未连接测试
+
+- 注释范围：`App/Inc`、`App/Src`、`BSP/Inc`、`BSP/Src`全部自编模块，以及`Core/Src/freertos.c`的USER CODE区域。
+- 文件编码：先以`debug_log.h`进行UTF-8小文件试验，用户确认Keil中文显示正常；随后完成其余模块的结构化中文注释。
+- 注释内容覆盖模块职责、公开接口、FreeRTOS任务流程、DebugLog并发保护、DHT11微秒时序与恢复、ST7735S初始化/坐标/RGB565绘图及5×7字模回退逻辑。
+- 静态审计：将注释和空白剥离后，与注释前提交`b76f8ec`逐文件比较，11个目标文件的有效代码全部一致；`freertos.c`差异全部位于USER CODE区域。
+- 最终Rebuild日志包含`fonts.c`、`debug_log.c`、`bsp_dht11.c`、`bsp_st7735s.c`、`app_tasks.c`和`freertos.c`，说明相关模块均重新编译。
+- 最终构建：Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0 Error(s)、0 Warning(s)。
+- 最终HEX SHA-256：`0DC8FC5B0E3CDCCAF4860CBD36F1DF81B97263A7F2E895ED10C4A2DDCA7C96E8`，与注释前基线完全一致。
+- 用户上板确认：启动日志与心跳持续正常；DHT11未连接时约每2秒输出`DHT11 status=TIMEOUT`；PA0松开/按下为`key=0/1`；PA1每秒翻转；ST7735S测试画面正常。
+- 验收结论：中文注释未改变固件行为，M1/M2功能无回归，M3A未连接TIMEOUT与自动周期重试测试通过。

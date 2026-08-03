@@ -26,6 +26,7 @@
 /* Private includes ----------------------------------------------------------*/
 /* USER CODE BEGIN Includes */
 
+/* 应用任务入口与线程安全日志初始化接口，均位于CubeMX生成区之外。 */
 #include "app_tasks.h"
 #include "debug_log.h"
 
@@ -83,6 +84,10 @@ void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 void MX_FREERTOS_Init(void) {
   /* USER CODE BEGIN Init */
 
+  /*
+   * 此时内核已经初始化但任务尚未创建，适合创建日志互斥量；
+   * 初始化失败时停止系统，避免任务运行后静默丢失全部日志。
+   */
   if (!DebugLog_Init())
   {
     Error_Handler();
@@ -133,6 +138,7 @@ void MX_FREERTOS_Init(void) {
 void StartDefaultTask(void *argument)
 {
   /* USER CODE BEGIN StartDefaultTask */
+	/* 将CubeMX任务入口委托给独立App层，防止重新生成覆盖业务逻辑。 */
 	App_DefaultTask(argument);
   /* USER CODE END StartDefaultTask */
 }
@@ -148,6 +154,7 @@ void StartSensorTask(void *argument)
 {
   /* USER CODE BEGIN StartSensorTask */
 
+  /* 将CubeMX任务入口委托给独立App层，防止重新生成覆盖业务逻辑。 */
   App_SensorTask(argument);
   /* USER CODE END StartSensorTask */
 }
