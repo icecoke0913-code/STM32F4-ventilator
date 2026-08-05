@@ -51,7 +51,7 @@ docs/test-records.md
 - Inspect: `firmware/SmartHood/SmartHood.ioc`
 - Inspect: `docs/superpowers/specs/2026-08-03-m4-tb6612-open-loop-motor-design.md`
 
-- [ ] **Step 1: 由助手检查并同步Git基线**
+- [x] **Step 1: 由助手检查并同步Git基线**
 
 应确认：
 
@@ -63,7 +63,7 @@ docs/test-records.md
 
 当前本地因GitHub连接超时而领先`origin/main`。助手先重试推送设计与计划提交；网络仍不可用时明确保留本地领先状态，不要求用户执行Git命令，也不阻止本地教学。
 
-- [ ] **Step 2: 由助手创建M4功能分支**
+- [x] **Step 2: 由助手创建M4功能分支**
 
 分支名：
 
@@ -73,7 +73,7 @@ codex/feature-m4-open-loop-motor
 
 所有分支、暂存、提交、推送和最终合并操作由助手完成。
 
-- [ ] **Step 3: 用户执行M3A基线全量编译**
+- [x] **Step 3: 用户执行M3A基线全量编译**
 
 在Keil中打开：
 
@@ -112,7 +112,7 @@ ZI-data=39524
 - Generate: `firmware/SmartHood/Core/Src/main.c`
 - Generate: `firmware/SmartHood/Core/Src/stm32f4xx_hal_msp.c`
 
-- [ ] **Step 1: 打开现有IOC并确认时钟**
+- [x] **Step 1: 打开现有IOC并确认时钟**
 
 打开：
 
@@ -130,7 +130,7 @@ APB1 Timer clocks = 84 MHz
 
 TIM4挂在APB1。APB1分频不为1时，定时器时钟为PCLK1的2倍，因此这里使用84MHz计算PWM。
 
-- [ ] **Step 2: 配置PB6为TIM4_CH1 PWM**
+- [x] **Step 2: 配置PB6为TIM4_CH1 PWM**
 
 在Pinout视图单击PB6，选择：
 
@@ -164,7 +164,7 @@ PWM = 84,000,000 / (Prescaler + 1) / (Period + 1)
 
 初始Pulse必须为0，使PWM启动后仍为0%占空比。
 
-- [ ] **Step 3: 配置PB7、PB8和PB9为安全GPIO输出**
+- [x] **Step 3: 配置PB7、PB8和PB9为安全GPIO输出**
 
 分别设置：
 
@@ -185,7 +185,7 @@ Maximum output speed：Low
 
 三个初始电平全部为Low是硬性安全要求。禁止把STBY初始值设为High。
 
-- [ ] **Step 4: 截图核对后再生成代码**
+- [x] **Step 4: 截图核对后再生成代码**
 
 用户发送以下截图供助手核对：
 
@@ -211,7 +211,7 @@ Clock Configuration中的APB1 Timer clocks
 - Verify generated: `firmware/SmartHood/Core/Src/main.c`
 - Verify generated: `firmware/SmartHood/Core/Src/stm32f4xx_hal_msp.c`
 
-- [ ] **Step 1: 生成代码**
+- [x] **Step 1: 生成代码**
 
 在CubeMX执行：
 
@@ -227,7 +227,7 @@ Generate peripheral initialization as pair of .c/.h：启用
 Toolchain：MDK-ARM
 ```
 
-- [ ] **Step 2: 由助手检查生成保护点**
+- [x] **Step 2: 由助手检查生成保护点**
 
 助手检查以下内容没有被覆盖：
 
@@ -239,7 +239,7 @@ MX_FREERTOS_Init()仍调用DebugLog_Init()
 app_tasks.c、bsp_dht11.c和bsp_st7735s.c内容未被CubeMX改写
 ```
 
-- [ ] **Step 3: 核对TIM4生成结果**
+- [x] **Step 3: 核对TIM4生成结果**
 
 `tim.h/.c`和`main.c`应体现等价配置：
 
@@ -261,7 +261,7 @@ sConfigOC.OCFastMode = TIM_OCFAST_DISABLE;
 
 PB6应在TIM4 PostInit中配置为`GPIO_AF2_TIM4`。`main.c`应在`MX_GPIO_Init()`之后调用`MX_TIM4_Init()`，具体相邻顺序由CubeMX决定。
 
-- [ ] **Step 4: 核对GPIO标签和初始低电平**
+- [x] **Step 4: 核对GPIO标签和初始低电平**
 
 `main.h`应生成：
 
@@ -282,7 +282,7 @@ HAL_GPIO_WritePin(GPIOB,
                   GPIO_PIN_RESET);
 ```
 
-- [ ] **Step 5: 用户执行空外设Rebuild**
+- [x] **Step 5: 用户执行空外设Rebuild**
 
 此时TB6612、电机和9V适配器保持未连接。执行Rebuild，预期：
 
@@ -295,7 +295,7 @@ compiling stm32f4xx_hal_tim.c...
 
 程序大小会因TIM4 PWM初始化略有增加，不预设精确字节数。
 
-- [ ] **Step 6: 由助手提交CubeMX检查点**
+- [x] **Step 6: 由助手提交CubeMX检查点**
 
 提交信息：
 

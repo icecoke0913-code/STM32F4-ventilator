@@ -71,6 +71,12 @@ void Error_Handler(void);
 #define TFT_DC_GPIO_Port GPIOD
 #define TFT_CS_Pin GPIO_PIN_7
 #define TFT_CS_GPIO_Port GPIOD
+#define MOTOR_AIN1_Pin GPIO_PIN_7
+#define MOTOR_AIN1_GPIO_Port GPIOB
+#define MOTOR_AIN2_Pin GPIO_PIN_8
+#define MOTOR_AIN2_GPIO_Port GPIOB
+#define MOTOR_STBY_Pin GPIO_PIN_9
+#define MOTOR_STBY_GPIO_Port GPIOB
 
 /* USER CODE BEGIN Private defines */
 
