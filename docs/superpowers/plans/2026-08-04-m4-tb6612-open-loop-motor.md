@@ -779,7 +779,7 @@ feat: add PA0 motor duty control
 - Verify: `firmware/SmartHood/MDK-ARM/SmartHood.hex`
 - Update after test: `docs/test-records.md`
 
-- [ ] **Step 1: 保持电机系统完全断开**
+- [x] **Step 1: 保持电机系统完全断开**
 
 以下均不连接：
 
@@ -793,7 +793,7 @@ TB6612
 
 保留已经验证的STM32、ST-Link、USB转TTL、TFT和DHT11连接。
 
-- [ ] **Step 2: 烧录并观察启动日志**
+- [x] **Step 2: 烧录并观察启动日志**
 
 预期出现：
 
@@ -805,7 +805,7 @@ ST7735S init and test OK
 
 `motor init ok`只表示TIM4 PWM成功启动，不表示TB6612硬件已连接。
 
-- [ ] **Step 3: 验证PA0消抖和挡位日志**
+- [x] **Step 3: 验证PA0消抖和挡位日志**
 
 连续短按PA0，预期日志循环：
 
@@ -825,7 +825,7 @@ motor duty=0%, state=STOP
 快速但明确的短按能够被识别
 ```
 
-- [ ] **Step 4: 验证M1/M2/M3A回归**
+- [x] **Step 4: 验证M1/M2/M3A回归**
 
 至少观察30秒：
 
@@ -838,7 +838,7 @@ DHT11每约2秒正常采集
 无重复启动、任务卡死或日志乱码
 ```
 
-- [ ] **Step 5: 复位安全验证**
+- [x] **Step 5: 复位安全验证**
 
 先通过PA0把软件挡位切到70%，再按RST。由于TB6612尚未连接，本步骤只验证软件状态：
 

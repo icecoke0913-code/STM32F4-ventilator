@@ -283,3 +283,15 @@
 - 完整配置：PD0输入上拉；TIM5 PSC=83、ARR=0xFFFFFFFF、1 MHz自由运行且无中断；SensorTask为Normal优先级、256 Words动态栈、约2秒采样周期。
 - 最终固件：Code=24002、RO-data=1286、RW-data=156、ZI-data=39524，0 Error(s)、0 Warning(s)，HEX SHA-256为`0DC8FC5B0E3CDCCAF4860CBD36F1DF81B97263A7F2E895ED10C4A2DDCA7C96E8`。
 - 最终结论：正常采集、湿度变化、未连接TIMEOUT、运行中断线、两次无复位自动恢复及M1/M2回归全部通过，M3A验收完成。
+
+### 2026-08-06：M4无电机软件安全测试
+
+- 测试条件：TB6612、DC-DC、9V适配器、电机和编码器全部未连接；保留STM32、ST-Link、USB转TTL、ST7735S和DHT11。
+- 固件构建：Code=25710、RO-data=1290、RW-data=160、ZI-data=39600，0 Error(s)、0 Warning(s)。
+- 启动日志显示`motor init ok, state=STOP`；该结果只表示TIM4_CH1 PWM成功启动，不代表驱动模块已连接。
+- PA0短按挡位日志按`30% → 50% → 70% → 0%停止 → 30%`循环，每次短按只切换一个挡位。
+- PA0持续按住至少2秒不会连续切挡；松开不切挡，再次短按才进入下一挡，20ms轮询和40ms消抖行为通过。
+- 软件处于70%挡位时按RST，重启后恢复`state=STOP`，不会自动恢复原挡位；再次短按从30%开始。
+- 截图样本确认50%和70%日志、`key=1`到`key=0`变化、heartbeat持续递增以及DHT11 `status=OK`并行输出正常。
+- PA1继续约每秒翻转，ST7735S画面正常，无重复启动、乱码或任务卡死。
+- 结论：M4无电机软件安全测试通过；下一步仅在完全断电状态连接TB6612、DC-DC和电机，接通9V前必须核对接线照片。
