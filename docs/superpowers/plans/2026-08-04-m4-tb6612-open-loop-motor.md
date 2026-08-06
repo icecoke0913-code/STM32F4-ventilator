@@ -545,7 +545,7 @@ feat: add TB6612 motor BSP
 **Files:**
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 
-- [ ] **Step 1: 确认头文件包含区**
+- [x] **Step 1: 确认头文件包含区**
 
 `app_tasks.c`头部应包含：
 
@@ -565,7 +565,7 @@ feat: add TB6612 motor BSP
 
 显式包含`stdbool.h`，避免应用层的`bool`依赖其他BSP头文件间接提供。
 
-- [ ] **Step 2: 在包含区之后加入控制参数和挡位表**
+- [x] **Step 2: 在包含区之后加入控制参数和挡位表**
 
 ```c
 /** 默认任务快速循环周期，用于可靠识别短按。 */
@@ -591,7 +591,7 @@ static const uint8_t app_motor_duty_levels[] =
                sizeof(app_motor_duty_levels[0])))
 ```
 
-- [ ] **Step 3: 在App_RunDisplayTest之前加入挡位应用函数**
+- [x] **Step 3: 在App_RunDisplayTest之前加入挡位应用函数**
 
 ```c
 /**
@@ -614,7 +614,7 @@ static void App_ApplyMotorDuty(uint8_t duty_percent)
 }
 ```
 
-- [ ] **Step 4: 用以下完整实现替换App_DefaultTask**
+- [x] **Step 4: 用以下完整实现替换App_DefaultTask**
 
 只替换`App_DefaultTask()`函数，不修改`App_RunDisplayTest()`和`App_SensorTask()`：
 
@@ -734,7 +734,7 @@ void App_DefaultTask(void *argument)
 }
 ```
 
-- [ ] **Step 5: 检查按键和安全逻辑**
+- [x] **Step 5: 检查按键和安全逻辑**
 
 逐项确认：
 
@@ -749,7 +749,7 @@ motor_ready=false时每次按下都只Stop
 首次有效按下从索引0切换到30%
 ```
 
-- [ ] **Step 6: 全量编译验证完整链接**
+- [x] **Step 6: 全量编译验证完整链接**
 
 执行Rebuild，预期日志包括：
 
@@ -763,7 +763,7 @@ linking...
 
 Code应比M3A最终值增加，证明电机BSP和消抖逻辑进入最终镜像；不预设精确字节数。
 
-- [ ] **Step 7: 由助手提交应用集成检查点**
+- [x] **Step 7: 由助手提交应用集成检查点**
 
 提交信息：
 

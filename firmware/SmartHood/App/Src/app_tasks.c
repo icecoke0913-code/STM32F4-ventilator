@@ -1,11 +1,12 @@
 /**
  * @file app_tasks.c
- * @brief SmartHood显示自检、心跳按键和DHT11周期任务实现。
+ * @brief SmartHood显示自检、心跳按键、电机挡位和DHT11周期任务实现。
  */
 
 #include "app_tasks.h"
 
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "bsp_dht11.h"
 #include "bsp_motor.h"
@@ -14,6 +15,49 @@
 #include "cmsis_os2.h"
 #include "debug_log.h"
 #include "gpio.h"
+
+/** 默认任务快速循环周期，用于可靠识别PA0短按。 */
+#define APP_MAIN_LOOP_PERIOD_MS       20U
+
+/** 原始按键电平保持不变达到此时间后，才更新稳定状态。 */
+#define APP_KEY_DEBOUNCE_MS           40U
+
+/** PA1翻转和心跳日志继续保持原有1秒周期。 */
+#define APP_HEARTBEAT_PERIOD_MS     1000U
+
+/** M4固定正转挡位，占空比按短按顺序循环。 */
+static const uint8_t app_motor_duty_levels[] =
+{
+    0U,
+    30U,
+    50U,
+    70U
+};
+
+/** 根据挡位表自动计算挡位数量，避免手工数量与数组不一致。 */
+#define APP_MOTOR_LEVEL_COUNT \
+    ((uint8_t)(sizeof(app_motor_duty_levels) / \
+               sizeof(app_motor_duty_levels[0])))
+
+/**
+ * @brief 应用一个已经确认的M4电机挡位并输出状态日志。
+ * @param duty_percent 允许值为0、30、50或70。
+ */
+static void App_ApplyMotorDuty(uint8_t duty_percent)
+{
+    if (duty_percent == 0U)
+    {
+        BSP_Motor_Stop();
+        DebugLog_Printf("motor duty=0%%, state=STOP\r\n");
+    }
+    else
+    {
+        BSP_Motor_SetDuty(duty_percent);
+
+        DebugLog_Printf("motor duty=%u%%, state=RUN\r\n",
+                        (unsigned int)duty_percent);
+    }
+}
 
 /**
  * @brief 执行一次ST7735S启动自检。
@@ -120,19 +164,40 @@ static bool App_RunDisplayTest(void)
 }
 
 /**
- * @brief 运行M1基础功能和M2显示自检的默认任务。
+ * @brief 运行显示自检、心跳和M4单键电机挡位控制。
  * @param argument FreeRTOS任务参数，本项目未使用。
  *
- * 任务启动时只执行一次TFT自检；随后每秒翻转PA1、读取PA0，
- * 并输出心跳序号、按键状态和HAL毫秒Tick。
+ * 快速循环每20ms采样PA0并执行40ms消抖；只有稳定状态从低变高时
+ * 才切换一次挡位。PA1和心跳使用独立1秒节拍，避免快速循环改变M1行为。
  */
 void App_DefaultTask(void *argument)
 {
     uint32_t heartbeat = 0U;
+    uint32_t heartbeat_tick;
+    uint32_t candidate_since_tick;
+    uint8_t motor_level_index = 0U;
+    GPIO_PinState candidate_key_state;
+    GPIO_PinState stable_key_state;
+    bool motor_ready;
 
     (void)argument;
 
     DebugLog_Printf("\r\nSmartHood M1 start\r\n");
+
+    /*
+     * 启动TIM4 PWM，但驱动初始化成功后仍保持0%和STBY低，
+     * 因此上电不会让电机自动旋转。
+     */
+    motor_ready = BSP_Motor_Init();
+
+    if (motor_ready)
+    {
+        DebugLog_Printf("motor init ok, state=STOP\r\n");
+    }
+    else
+    {
+        DebugLog_Printf("motor init failed, state=STOP\r\n");
+    }
 
     if (App_RunDisplayTest())
     {
@@ -145,21 +210,100 @@ void App_DefaultTask(void *argument)
         DebugLog_Printf("ST7735S init or draw failed\r\n");
     }
 
-    /* 默认任务以1秒为周期执行心跳、LED翻转和按键采样。 */
+    /*
+     * 以任务开始处理按键时的实际电平作为初始稳定状态。
+     * 如果上电时PA0已经被按住，不会因此触发电机；
+     * 必须先释放按键，再重新按下。
+     */
+    stable_key_state = HAL_GPIO_ReadPin(USER_KEY_GPIO_Port,
+                                        USER_KEY_Pin);
+
+    candidate_key_state = stable_key_state;
+    candidate_since_tick = HAL_GetTick();
+    heartbeat_tick = candidate_since_tick;
+
     for (;;)
     {
-        GPIO_PinState key_state;
+        GPIO_PinState raw_key_state;
+        uint32_t now_tick;
 
-        HAL_GPIO_TogglePin(BOARD_LED_GPIO_Port, BOARD_LED_Pin);
-        key_state = HAL_GPIO_ReadPin(USER_KEY_GPIO_Port, USER_KEY_Pin);
+        now_tick = HAL_GetTick();
 
-        DebugLog_Printf("heartbeat=%lu key=%u tick=%lu\r\n",
-                        (unsigned long)heartbeat,
-                        (unsigned int)key_state,
-                        (unsigned long)HAL_GetTick());
+        raw_key_state = HAL_GPIO_ReadPin(USER_KEY_GPIO_Port,
+                                        USER_KEY_Pin);
 
-        heartbeat++;
-        osDelay(1000U);
+        if (raw_key_state != candidate_key_state)
+        {
+            /*
+             * 原始电平发生变化时，只记录新的候选状态，
+             * 并重新开始40ms消抖计时。
+             */
+            candidate_key_state = raw_key_state;
+            candidate_since_tick = now_tick;
+        }
+        else if ((candidate_key_state != stable_key_state) &&
+                 ((uint32_t)(now_tick - candidate_since_tick) >=
+                  APP_KEY_DEBOUNCE_MS))
+        {
+            /*
+             * 候选电平连续保持40ms，确认它是稳定状态，
+             * 而不是机械按键触点抖动。
+             */
+            stable_key_state = candidate_key_state;
+
+            if (stable_key_state == GPIO_PIN_SET)
+            {
+                /*
+                 * 只在稳定状态从低变高的按下沿切换一次。
+                 * 按键保持高电平期间不会再次进入这里。
+                 */
+                if (motor_ready)
+                {
+                    motor_level_index++;
+
+                    if (motor_level_index >= APP_MOTOR_LEVEL_COUNT)
+                    {
+                        motor_level_index = 0U;
+                    }
+
+                    App_ApplyMotorDuty(
+                        app_motor_duty_levels[motor_level_index]);
+                }
+                else
+                {
+                    /*
+                     * PWM初始化失败后，不允许按键绕过安全状态。
+                     */
+                    BSP_Motor_Stop();
+
+                    DebugLog_Printf(
+                        "motor unavailable, state=STOP\r\n");
+                }
+            }
+        }
+
+        if ((uint32_t)(now_tick - heartbeat_tick) >=
+            APP_HEARTBEAT_PERIOD_MS)
+        {
+            /*
+             * 默认任务虽然每20ms循环一次，但心跳和PA1仍只在
+             * 独立的1秒节拍到达时执行。
+             */
+            heartbeat_tick = now_tick;
+
+            HAL_GPIO_TogglePin(BOARD_LED_GPIO_Port,
+                               BOARD_LED_Pin);
+
+            DebugLog_Printf(
+                "heartbeat=%lu key=%u tick=%lu\r\n",
+                (unsigned long)heartbeat,
+                (unsigned int)stable_key_state,
+                (unsigned long)now_tick);
+
+            heartbeat++;
+        }
+
+        osDelay(APP_MAIN_LOOP_PERIOD_MS);
     }
 }
 
