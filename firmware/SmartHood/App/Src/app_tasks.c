@@ -8,7 +8,9 @@
 #include <stdint.h>
 
 #include "bsp_dht11.h"
+#include "bsp_motor.h"
 #include "bsp_st7735s.h"
+
 #include "cmsis_os2.h"
 #include "debug_log.h"
 #include "gpio.h"

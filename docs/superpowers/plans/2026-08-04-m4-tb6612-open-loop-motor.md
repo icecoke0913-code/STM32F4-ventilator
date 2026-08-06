@@ -310,7 +310,7 @@ feat: configure TIM4 motor PWM outputs
 **Files:**
 - Create: `firmware/SmartHood/BSP/Inc/bsp_motor.h`
 
-- [ ] **Step 1: 创建bsp_motor.h**
+- [x] **Step 1: 创建bsp_motor.h**
 
 创建文件并录入完整内容：
 
@@ -349,7 +349,7 @@ void BSP_Motor_Stop(void);
 #endif
 ```
 
-- [ ] **Step 2: 检查接口设计**
+- [x] **Step 2: 检查接口设计**
 
 确认：
 
@@ -360,7 +360,7 @@ void BSP_Motor_Stop(void);
 所有公共接口均有中文用途、参数和安全行为说明
 ```
 
-- [ ] **Step 3: 头文件语法编译**
+- [x] **Step 3: 头文件语法编译**
 
 暂时在`app_tasks.c`包含区加入：
 
@@ -384,7 +384,7 @@ void BSP_Motor_Stop(void);
 - Create: `firmware/SmartHood/BSP/Src/bsp_motor.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 创建bsp_motor.c**
+- [x] **Step 1: 创建bsp_motor.c**
 
 创建文件并录入完整内容：
 
@@ -485,7 +485,7 @@ void BSP_Motor_Stop(void)
 }
 ```
 
-- [ ] **Step 2: 人工核对安全顺序和换算**
+- [x] **Step 2: 人工核对安全顺序和换算**
 
 检查：
 
@@ -499,7 +499,7 @@ PWM启动失败时再次Stop并返回false
 ARR=4199时30%/50%/70%分别换算为1260/2100/2940
 ```
 
-- [ ] **Step 3: 将bsp_motor.c加入Keil BSP分组**
+- [x] **Step 3: 将bsp_motor.c加入Keil BSP分组**
 
 在Keil执行：
 
@@ -519,7 +519,7 @@ bsp_dht11.c
 bsp_motor.c
 ```
 
-- [ ] **Step 4: 编译尚未调用的BSP**
+- [x] **Step 4: 编译尚未调用的BSP**
 
 执行Rebuild，预期：
 
@@ -530,7 +530,7 @@ compiling bsp_motor.c...
 
 应用层尚未调用时，链接器可能移除电机BSP，因此程序大小不是本检查点标准。
 
-- [ ] **Step 5: 由助手提交BSP检查点**
+- [x] **Step 5: 由助手提交BSP检查点**
 
 提交信息：
 
