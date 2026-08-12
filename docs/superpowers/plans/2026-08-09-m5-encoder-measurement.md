@@ -17,7 +17,7 @@
 - Verify: `docs/project-guide.md`
 - Verify: `docs/test-records.md`
 
-- [ ] **Step 1: 创建M5功能分支**
+- [x] **Step 1: 创建M5功能分支**
 
 ```powershell
 git switch -c codex/feature-m5-encoder
@@ -25,7 +25,7 @@ git switch -c codex/feature-m5-encoder
 
 Expected: 当前分支为`codex/feature-m5-encoder`，工作区干净。
 
-- [ ] **Step 2: 保存M4基线构建信息**
+- [x] **Step 2: 保存M4基线构建信息**
 
 确认Keil Rebuild仍为`0 Error(s), 0 Warning(s)`，并记录当前HEX SHA-256：
 
@@ -33,7 +33,7 @@ Expected: 当前分支为`codex/feature-m5-encoder`，工作区干净。
 Get-FileHash firmware\SmartHood\MDK-ARM\SmartHood\SmartHood.hex -Algorithm SHA256
 ```
 
-- [ ] **Step 3: 提交M5启动检查点**
+- [x] **Step 3: 提交M5启动检查点**
 
 ```powershell
 git add docs/superpowers/specs/2026-08-09-m5-encoder-measurement-design.md
@@ -298,4 +298,3 @@ git commit -m "feat: complete M5 encoder measurement"
 - [ ] **Step 4: 合并回main并尝试推送**
 
 最终构建和硬件验收全部通过后，将`codex/feature-m5-encoder`合并回`main`并尝试推送GitHub；网络失败时保留本地提交并明确记录领先状态。
-
