@@ -48,7 +48,7 @@ git commit -m "docs: start M5 encoder implementation"
 - Generated: `firmware/SmartHood/Core/Src/tim.c`
 - Generated: `firmware/SmartHood/Core/Src/gpio.c`
 
-- [ ] **Step 1: 配置PC6和PC7复用功能**
+- [x] **Step 1: 配置PC6和PC7复用功能**
 
 在Pinout中设置：
 
@@ -59,7 +59,7 @@ PC7 = TIM3_CH2
 
 确认两脚均为`GPIO_AF2_TIM3`，不要将PC6/PC7配置成普通GPIO或外部中断。
 
-- [ ] **Step 2: 启用TIM3 Encoder Mode**
+- [x] **Step 2: 启用TIM3 Encoder Mode**
 
 在Timers → TIM3设置：
 
@@ -83,15 +83,15 @@ Filter: 4
 
 Filter先使用4抑制线缆噪声；若手动慢转时漏计数，再依据测试结果调整。
 
-- [ ] **Step 3: 配置输入上下拉**
+- [x] **Step 3: 配置输入上下拉**
 
 PC6和PC7选择`Pull-up`、`Low Speed`，不启用TIM3中断。
 
-- [ ] **Step 4: 生成并核对代码**
+- [x] **Step 4: 生成并核对代码**
 
 生成后确认`MX_TIM3_Init()`包含`HAL_TIM_Encoder_Init()`和两路`HAL_TIM_Encoder_ConfigChannel()`，并保留所有USER CODE区域。
 
-- [ ] **Step 5: 提交CubeMX检查点**
+- [x] **Step 5: 提交CubeMX检查点**
 
 ```powershell
 git add firmware/SmartHood/SmartHood.ioc firmware/SmartHood/Core/Inc/tim.h firmware/SmartHood/Core/Src/tim.c firmware/SmartHood/Core/Src/gpio.c
