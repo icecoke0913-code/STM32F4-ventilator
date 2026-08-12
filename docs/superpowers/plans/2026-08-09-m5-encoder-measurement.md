@@ -105,7 +105,7 @@ git commit -m "feat: configure TIM3 encoder interface"
 - Verify: `firmware/SmartHood/Core/Src/stm32f4xx_hal_msp.c`
 - Verify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 核对生成结果**
+- [x] **Step 1: 核对生成结果**
 
 应看到：
 
@@ -115,11 +115,11 @@ htim3.Instance = TIM3;
 GPIO_AF2_TIM3
 ```
 
-- [ ] **Step 2: 确认Keil工程没有重复源文件**
+- [x] **Step 2: 确认Keil工程没有重复源文件**
 
 确认`tim.c`只出现一次，新的TIM3句柄可以被后续BSP引用。
 
-- [ ] **Step 3: Rebuild**
+- [x] **Step 3: Rebuild**
 
 Expected: `0 Error(s), 0 Warning(s)`。出现句柄未定义或重复文件时，先修复工程再继续。
 
@@ -130,7 +130,7 @@ Expected: `0 Error(s), 0 Warning(s)`。出现句柄未定义或重复文件时�
 - Create: `firmware/SmartHood/BSP/Src/bsp_encoder.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 定义公共接口**
+- [x] **Step 1: 定义公共接口**
 
 ```c
 void BSP_Encoder_Init(void);
@@ -142,7 +142,7 @@ int32_t BSP_Encoder_CountToRpmX10(int16_t delta, uint32_t sample_ms);
 
 每个函数和宏添加中文注释，写明单位、范围和回绕约束。
 
-- [ ] **Step 2: 实现回绕安全差值**
+- [x] **Step 2: 实现回绕安全差值**
 
 ```c
 uint16_t current = __HAL_TIM_GET_COUNTER(&htim3);
@@ -153,7 +153,7 @@ return (int16_t)delta_u16;
 
 50 ms窗口内增量必须小于32768 counts；300 RPM、1400 counts/圈时约为350 counts，满足约束。
 
-- [ ] **Step 3: 实现整数RPM换算**
+- [x] **Step 3: 实现整数RPM换算**
 
 ```c
 rpm_x10 = abs(delta) * 600000UL / (counts_per_rev * sample_ms);
@@ -161,11 +161,11 @@ rpm_x10 = abs(delta) * 600000UL / (counts_per_rev * sample_ms);
 
 `counts_per_rev`初始为1400，使用单一宏保存，后续用实测标定值替换。
 
-- [ ] **Step 4: 加入Keil BSP分组并编译**
+- [x] **Step 4: 加入Keil BSP分组并编译**
 
 将BSP头文件目录加入Include Paths，将`bsp_encoder.c`加入BSP源文件组。Rebuild保持0错误、0警告。
 
-- [ ] **Step 5: 提交BSP检查点**
+- [x] **Step 5: 提交BSP检查点**
 
 ```powershell
 git add firmware/SmartHood/BSP/Inc/bsp_encoder.h firmware/SmartHood/BSP/Src/bsp_encoder.c firmware/SmartHood/MDK-ARM/SmartHood.uvprojx
