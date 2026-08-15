@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 接入JGA12-N20-50B编码器，使用TIM3硬件正交计数完成方向、计数增量和RPM测量，并通过实际输出轴转数完成标定。
+**Goal:** 接入JGA12-N20-50B编码器，使用TIM3硬件正交计数完成方向、计数增量和RPM趋势测量；实际输出轴CPR标定由用户决定跳过，精确闭环控制前需重新执行。
 
 **Architecture:** PC6/PC7分别作为TIM3_CH1/CH2，TIM3使用Encoder Mode硬件计数；独立`bsp_encoder`封装计数器访问与整数RPM换算；新增`motorTask`每50 ms采样、每500 ms输出日志。M5不修改M4的PA0开环PWM控制，不实现PID。
 
@@ -160,7 +160,7 @@ return (int16_t)delta_u16;
 rpm_x10 = abs(delta) * 600000UL / (counts_per_rev * sample_ms);
 ```
 
-`counts_per_rev`初始为1400，使用单一宏保存，后续用实测标定值替换。
+`counts_per_rev`保留理论值1400，并使用单一宏保存；当前仅用于趋势显示，需要精确闭环控制前再用实测标定值替换。
 
 - [x] **Step 4: 加入Keil BSP分组并编译**
 
@@ -243,19 +243,19 @@ Expected: 无空白错误，除计划中的文件外无未跟踪M5源码。
 - Update: `docs/test-records.md`
 - Update: `docs/hardware-connections.md`
 
-- [ ] **Step 1: M5-T1手动计数**
+- [x] **Step 1: M5-T1计数链路验证（输出轴无法反拖，改由编码器侧手动和电机驱动验证）**
 
-断开TB6612 VM，仅给STM32和编码器3.3V供电；手动转动输出轴，确认计数变化、正反方向符号相反、停止后计数保持。
+输出轴无法可靠反拖50:1齿轮箱，因此未强行继续；改为轻转编码器侧确认计数响应，并由电机固定正转验证持续计数和停止归零。人为双向精确验证未执行。
 
-- [ ] **Step 2: M5-T2信号稳定性**
+- [x] **Step 2: M5-T2信号稳定性**
 
-在无VM状态下测试慢速、快速、正反转切换，记录丢计数、方向跳变或无响应现象。异常时不接通VM，先检查供电、共地、C1/C2和TIM3复用。
+在30%、50%、70%空载运行中确认计数连续、方向稳定、跨越0/65535回绕正常；停止后恢复零增量。M5不实现软件反转。
 
 - [x] **Step 3: M5-T3低占空比测速**
 
 接通TB6612 5V VM，按30%→50%→70%短时测试；记录方向、计数增量、稳定RPM、启动和噪声现象。禁止堵转、扇叶和机械负载。
 
-- [ ] **Step 4: M5-T4 RPM标定**
+- [x] **Step 4: M5-T4 RPM标定（用户明确跳过，未执行）**
 
 稳定运行约30秒，记录总计数和输出轴实际转数：
 
@@ -263,9 +263,9 @@ Expected: 无空白错误，除计划中的文件外无未跟踪M5源码。
 实测每圈计数 = 总计数 / 实际输出轴转数
 ```
 
-后续RPM换算统一使用实测每圈计数，同时保留理论1400 counts/圈。
+用户决定不继续实际CPR标定；固件保留理论1400 counts/圈，RPM只作为趋势和近似值，不描述为精确转速。
 
-- [ ] **Step 5: 更新验收文档并提交**
+- [x] **Step 5: 更新验收文档并提交**
 
 在`docs/test-records.md`记录每项结果、实际计数常数和未测试限制；在`docs/hardware-connections.md`更新PC6/PC7状态。C1/C2输出类型若未实测，必须写“未确认”。
 
@@ -281,15 +281,15 @@ git commit -m "test: record M5 encoder measurement results"
 - Verify: `docs/superpowers/plans/2026-08-09-m5-encoder-measurement.md`
 - Verify: all M5 firmware files
 
-- [ ] **Step 1: 确认范围边界**
+- [x] **Step 1: 确认范围边界**
 
 确认文档和代码没有把PID、自动调速、软件反转、MQ-2或LVGL描述为M5已实现。
 
-- [ ] **Step 2: 最终Rebuild与HEX校验**
+- [x] **Step 2: 最终Rebuild与HEX校验**
 
 记录最终Keil构建摘要和HEX SHA-256，并与测试记录保持一致。
 
-- [ ] **Step 3: 提交最终收尾**
+- [x] **Step 3: 提交最终收尾**
 
 ```powershell
 git add docs firmware

@@ -62,8 +62,8 @@ int16_t BSP_Encoder_ReadDelta(Encoder_Direction_t *direction);
 /**
  * @brief 将计数增量换算为放大10倍的RPM整数。
  *
- * 例如返回1234表示123.4 RPM。M5初始使用1400 counts/rev，
- * 后续通过输出轴实际转数完成标定后再更新。
+ * 例如返回1234表示123.4 RPM。当前使用理论值1400 counts/rev，
+ * 仅用于转速趋势显示；需要精确闭环控制前应重新标定。
  *
  * @param delta 采样窗口内的有符号计数增量。
  * @param sample_ms 采样窗口，单位为毫秒。
