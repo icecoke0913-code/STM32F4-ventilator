@@ -290,6 +290,13 @@
 - 限制：用户明确跳过助手接线照片核对；没有万用表，未实测DC-DC 5V或启动压降；未进行堵转、带扇叶、带机械负载或长时间温升测试。
 - M4结论：所有已执行的功能与安全验收项目通过；助手接线照片核对按用户明确授权豁免、未执行。下一步进入M5编码器资料与电气接口设计，不直接沿用旧线色或开漏输出假设。
 
+### 2026-08-15：M6相对速度PI闭环实施启动
+
+- 已创建功能分支`codex/feature-m6-relative-pi`，从已完成M5的`main`开始。
+- M6开始前Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 30秒。
+- 基线HEX SHA-256：`7E9543FC3A23014FC07FB54B5D550A6986F867067CF8B40C7C0B55F1B8F612E4`。
+- 当前只完成分支和基线检查，尚未创建Control模块或修改电机运行逻辑。
+
 ## 设计依据
 
 完整设计见 `docs/superpowers/specs/2026-07-20-stm32f407-range-hood-controller-design.md`。开发板硬件依据为根目录 `stm32f407vet6.pdf`。

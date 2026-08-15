@@ -37,7 +37,7 @@ CubeMX 外设配置不变，不新增任务、定时器、中断或 DMA。
 - Verify: `firmware/SmartHood/MDK-ARM/SmartHood/SmartHood.hex`
 - Modify: `docs/project-guide.md`
 
-- [ ] **Step 1: 检查工作区**
+- [x] **Step 1: 检查工作区**
 
 Run:
 
@@ -48,7 +48,7 @@ git log -3 --oneline
 
 Expected: 当前分支为`main`，工作区没有未提交文件。
 
-- [ ] **Step 2: 创建功能分支**
+- [x] **Step 2: 创建功能分支**
 
 Run:
 
@@ -58,7 +58,7 @@ git switch -c codex/feature-m6-relative-pi
 
 Expected: 当前分支变为`codex/feature-m6-relative-pi`。
 
-- [ ] **Step 3: Rebuild M5 基线**
+- [x] **Step 3: Rebuild M5 基线**
 
 在 Keil 中执行`Rebuild`，或由助手运行：
 
@@ -70,7 +70,7 @@ Expected: 当前分支变为`codex/feature-m6-relative-pi`。
 
 Expected: `0 Error(s), 0 Warning(s)`；程序尺寸保持`Code=26986、RO-data=1338、RW-data=164、ZI-data=39668`。
 
-- [ ] **Step 4: 校验基线 HEX**
+- [x] **Step 4: 校验基线 HEX**
 
 Run:
 
@@ -86,7 +86,7 @@ Expected:
 7E9543FC3A23014FC07FB54B5D550A6986F867067CF8B40C7C0B55F1B8F612E4
 ```
 
-- [ ] **Step 5: 更新并提交启动记录**
+- [x] **Step 5: 更新并提交启动记录**
 
 在`docs/project-guide.md`记录 M6 分支、基线尺寸和 HEX。
 
