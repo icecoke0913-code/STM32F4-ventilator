@@ -101,6 +101,15 @@ void MX_FREERTOS_Init(void) {
     Error_Handler();
   }
 
+  /*
+   * 按键任务和电机任务启动前先创建控制命令队列。
+   * 创建失败时不启动任何任务，避免PA0命令被静默丢失。
+   */
+  if (!App_MotorControl_Init())
+  {
+    Error_Handler();
+  }
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */

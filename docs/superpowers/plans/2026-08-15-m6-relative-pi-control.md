@@ -508,7 +508,7 @@ git commit -m "feat: add fixed-point PI controller"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/Core/Src/freertos.c`
 
-- [ ] **Step 1: 声明队列初始化接口**
+- [x] **Step 1: 声明队列初始化接口**
 
 在`app_tasks.h`包含区增加：
 
@@ -526,7 +526,7 @@ git commit -m "feat: add fixed-point PI controller"
 bool App_MotorControl_Init(void);
 ```
 
-- [ ] **Step 2: 增加单一 NEXT 命令队列**
+- [x] **Step 2: 增加单一 NEXT 命令队列**
 
 在`app_tasks.c`私有定义区增加：
 
@@ -568,7 +568,7 @@ static bool App_MotorPostNextCommand(void)
 }
 ```
 
-- [ ] **Step 3: 在任务创建前初始化队列**
+- [x] **Step 3: 在任务创建前初始化队列**
 
 在`freertos.c`的`MX_FREERTOS_Init()`中，紧跟`DebugLog_Init()`成功检查后增加：
 
@@ -580,7 +580,7 @@ static bool App_MotorPostNextCommand(void)
   }
 ```
 
-- [ ] **Step 4: DefaultTask 不再直接控制 PWM**
+- [x] **Step 4: DefaultTask 不再直接控制 PWM**
 
 从`app_tasks.c`删除：
 
@@ -609,11 +609,11 @@ if (!App_MotorPostNextCommand())
 }
 ```
 
-- [ ] **Step 5: Rebuild**
+- [x] **Step 5: Rebuild**
 
 Expected: `0 Error(s), 0 Warning(s)`。此检查点的 M5 `App_MotorTask`仍只测速，因此接电机后按键暂时不会改变 PWM；不要进行硬件运行测试。
 
-- [ ] **Step 6: 提交任务所有权改造**
+- [x] **Step 6: 提交任务所有权改造**
 
 ```powershell
 git add firmware/SmartHood/App `

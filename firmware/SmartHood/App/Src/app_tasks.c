@@ -42,38 +42,61 @@
  */
 #define APP_CONTROL_PI_SELF_TEST_ENABLED 0U
 
-/** M4固定正转挡位，占空比按短按顺序循环。 */
-static const uint8_t app_motor_duty_levels[] =
+/**
+ * @brief 默认任务可以发送给电机任务的控制命令。
+ *
+ * 当前只有NEXT命令，表示按既定顺序切换到下一个电机状态。
+ */
+typedef enum
 {
-    0U,
-    30U,
-    50U,
-    70U
-};
-
-/** 根据挡位表自动计算挡位数量，避免手工数量与数组不一致。 */
-#define APP_MOTOR_LEVEL_COUNT \
-    ((uint8_t)(sizeof(app_motor_duty_levels) / \
-               sizeof(app_motor_duty_levels[0])))
+    APP_MOTOR_COMMAND_NEXT = 0
+} App_MotorCommand_t;
 
 /**
- * @brief 应用一个已经确认的M4电机挡位并输出状态日志。
- * @param duty_percent 允许值为0、30、50或70。
+ * @brief 电机命令队列最多保存的命令数量。
+ *
+ * 正常按键已经经过40ms消抖，长度4足以容纳短时间内的连续操作。
  */
-static void App_ApplyMotorDuty(uint8_t duty_percent)
-{
-    if (duty_percent == 0U)
-    {
-        BSP_Motor_Stop();
-        DebugLog_Printf("motor duty=0%%, state=STOP\r\n");
-    }
-    else
-    {
-        BSP_Motor_SetDuty(duty_percent);
+#define APP_MOTOR_COMMAND_QUEUE_LENGTH 4U
 
-        DebugLog_Printf("motor duty=%u%%, state=RUN\r\n",
-                        (unsigned int)duty_percent);
+/** 电机控制命令队列句柄，创建成功前保持为NULL。 */
+static osMessageQueueId_t app_motor_command_queue = NULL;
+
+/**
+ * @brief 创建默认任务到电机任务之间的命令队列。
+ *
+ * @return 创建成功返回true，否则返回false。
+ */
+bool App_MotorControl_Init(void)
+{
+    app_motor_command_queue = osMessageQueueNew(
+        APP_MOTOR_COMMAND_QUEUE_LENGTH,
+        sizeof(App_MotorCommand_t),
+        NULL);
+
+    return app_motor_command_queue != NULL;
+}
+
+/**
+ * @brief 向电机任务发送一次“切换到下一状态”命令。
+ *
+ * 使用0超时，队列已满时立即返回，不阻塞默认任务的心跳和按键扫描。
+ *
+ * @return 命令成功进入队列返回true，否则返回false。
+ */
+static bool App_MotorPostNextCommand(void)
+{
+    App_MotorCommand_t command = APP_MOTOR_COMMAND_NEXT;
+
+    if (app_motor_command_queue == NULL)
+    {
+        return false;
     }
+
+    return osMessageQueuePut(app_motor_command_queue,
+                             &command,
+                             0U,
+                             0U) == osOK;
 }
 
 /**
@@ -181,40 +204,23 @@ static bool App_RunDisplayTest(void)
 }
 
 /**
- * @brief 运行显示自检、心跳和M4单键电机挡位控制。
+ * @brief 运行显示自检、心跳，并把PA0有效按下发送给电机任务。
  * @param argument FreeRTOS任务参数，本项目未使用。
  *
  * 快速循环每20ms采样PA0并执行40ms消抖；只有稳定状态从低变高时
- * 才切换一次挡位。PA1和心跳使用独立1秒节拍，避免快速循环改变M1行为。
+ * 才发送一次NEXT命令。PA1和心跳继续使用独立的1秒节拍。
  */
 void App_DefaultTask(void *argument)
 {
     uint32_t heartbeat = 0U;
     uint32_t heartbeat_tick;
     uint32_t candidate_since_tick;
-    uint8_t motor_level_index = 0U;
     GPIO_PinState candidate_key_state;
     GPIO_PinState stable_key_state;
-    bool motor_ready;
 
     (void)argument;
 
     DebugLog_Printf("\r\nSmartHood M1 start\r\n");
-
-    /*
-     * 启动TIM4 PWM，但驱动初始化成功后仍保持0%和STBY低，
-     * 因此上电不会让电机自动旋转。
-     */
-    motor_ready = BSP_Motor_Init();
-
-    if (motor_ready)
-    {
-        DebugLog_Printf("motor init ok, state=STOP\r\n");
-    }
-    else
-    {
-        DebugLog_Printf("motor init failed, state=STOP\r\n");
-    }
 
     if (App_RunDisplayTest())
     {
@@ -271,30 +277,12 @@ void App_DefaultTask(void *argument)
             if (stable_key_state == GPIO_PIN_SET)
             {
                 /*
-                 * 只在稳定状态从低变高的按下沿切换一次。
-                 * 按键保持高电平期间不会再次进入这里。
+                 * 默认任务不再直接修改PWM，只向电机任务发送NEXT命令。
+                 * 队列发送失败时记录日志，但不阻塞心跳和其他任务。
                  */
-                if (motor_ready)
+                if (!App_MotorPostNextCommand())
                 {
-                    motor_level_index++;
-
-                    if (motor_level_index >= APP_MOTOR_LEVEL_COUNT)
-                    {
-                        motor_level_index = 0U;
-                    }
-
-                    App_ApplyMotorDuty(
-                        app_motor_duty_levels[motor_level_index]);
-                }
-                else
-                {
-                    /*
-                     * PWM初始化失败后，不允许按键绕过安全状态。
-                     */
-                    BSP_Motor_Stop();
-
-                    DebugLog_Printf(
-                        "motor unavailable, state=STOP\r\n");
+                    DebugLog_Printf("motor command queue full\r\n");
                 }
             }
         }

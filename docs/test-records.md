@@ -338,3 +338,12 @@
 - 关闭临时自检后的最终Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 14秒。
 - 程序已下载并通过Flash Verify；最终HEX SHA-256为`79828DBFA4406B3F92A9A44793F90D38EF316B634C86E95CAC9A20AFD7B914C5`。
 - 本检查点只验证PI纯算法和既有功能回归，不代表电机闭环、软启动或编码器故障锁存已经实现或通过。
+
+### 2026-08-15：M6电机命令所有权迁移构建
+
+- 新增长度为4的CMSIS-RTOS2消息队列，PA0每次有效按下只发送一个`APP_MOTOR_COMMAND_NEXT`命令。
+- 队列在`MX_FREERTOS_Init()`中、日志互斥量初始化成功后且所有任务创建前建立；创建失败进入`Error_Handler()`。
+- `App_DefaultTask()`已删除TIM4启动、TB6612初始化、挡位表和直接调用`BSP_Motor_SetDuty()`/`BSP_Motor_Stop()`的路径。
+- 静态检查确认DefaultTask不存在`BSP_Motor_*`引用；后续只有`App_MotorTask()`可以拥有电机状态并修改PWM。
+- Rebuild结果：Code=26622、RO-data=1334、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒。
+- 此检查点的MotorTask仍保持M5编码器测速实现，尚未消费NEXT命令；因此未烧录，也未进行PA0或电机硬件运行测试。

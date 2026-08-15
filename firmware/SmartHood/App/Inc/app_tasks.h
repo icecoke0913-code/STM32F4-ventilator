@@ -9,8 +9,20 @@
 #ifndef APP_TASKS_H
 #define APP_TASKS_H
 
+#include <stdbool.h>
+
 /**
- * @brief 默认任务：执行显示自检，并周期处理心跳、LED和按键日志。
+ * @brief 在任务创建前建立电机控制命令队列。
+ *
+ * 队列用于把PA0按键命令从默认任务发送给电机任务，
+ * 保证只有电机任务能够直接修改PWM和电机状态。
+ *
+ * @return 创建成功返回true，创建失败返回false。
+ */
+bool App_MotorControl_Init(void);
+
+/**
+ * @brief 默认任务：执行显示自检、心跳和按键消抖，并发送电机命令。
  * @param argument FreeRTOS任务参数，本项目未使用。
  */
 void App_DefaultTask(void *argument);
