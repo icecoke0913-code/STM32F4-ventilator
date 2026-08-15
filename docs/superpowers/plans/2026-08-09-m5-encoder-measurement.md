@@ -296,6 +296,6 @@ git add docs firmware
 git commit -m "feat: complete M5 encoder measurement"
 ```
 
-- [ ] **Step 4: 合并回main并尝试推送**
+- [x] **Step 4: 合并回main（本地完成，远端同步未执行）**
 
-最终构建和硬件验收全部通过后，将`codex/feature-m5-encoder`合并回`main`并尝试推送GitHub；网络失败时保留本地提交并明确记录领先状态。
+已按用户选择将功能分支快进合并回本地`main`；合并前执行`git pull --ff-only`时GitHub连接被重置，因此没有执行远端同步，不把本地成功描述为远端成功。

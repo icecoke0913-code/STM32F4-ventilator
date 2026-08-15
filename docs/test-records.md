@@ -324,5 +324,5 @@
 - 反向递减计数跨越0时从1222回绕到65411，日志仍保持约`-112 RPM`，16位回绕差值处理通过。
 - 回到0%后日志恢复`delta=0 dir=stopped rpm=0.0`；测试期间无异常气味、明显发热、异常摩擦声或系统重启。
 - 当前RPM使用理论`1400 counts/输出轴圈`换算；10圈约16秒的粗测与显示值存在明显偏差，但用户明确决定不继续实际CPR标定，因此该项记录为跳过、未执行，不把RPM作为精确转速。M5保留固定正转对应`reverse`的方向关系，未执行人为双向精确验证。
-- 最终Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 21秒。
+- 合并到`main`后的最终Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 23秒。
 - 最终HEX SHA-256：`7E9543FC3A23014FC07FB54B5D550A6986F867067CF8B40C7C0B55F1B8F612E4`。
