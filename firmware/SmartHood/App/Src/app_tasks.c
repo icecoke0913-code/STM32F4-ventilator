@@ -11,6 +11,7 @@
 #include "bsp_dht11.h"
 #include "bsp_motor.h"
 #include "bsp_st7735s.h"
+#include "bsp_encoder.h"
 
 #include "cmsis_os2.h"
 #include "debug_log.h"
@@ -24,6 +25,12 @@
 
 /** PA1翻转和心跳日志继续保持原有1秒周期。 */
 #define APP_HEARTBEAT_PERIOD_MS     1000U
+
+/** 编码器测速采样周期，与后续PID控制周期保持一致。 */
+#define APP_ENCODER_SAMPLE_PERIOD_MS    50U
+
+/** 每10次采样输出一次日志，即约500 ms输出一次。 */
+#define APP_ENCODER_LOG_SAMPLE_COUNT    10U
 
 /** M4固定正转挡位，占空比按短按顺序循环。 */
 static const uint8_t app_motor_duty_levels[] =
@@ -376,5 +383,126 @@ void App_SensorTask(void *argument)
         }
 
         osDelay(2000U);
+    }
+}
+
+/**
+ * @brief 每50 ms读取一次编码器，并每约500 ms输出计数、方向和RPM。
+ * @param argument FreeRTOS任务参数，本项目未使用。
+ *
+ * M5只测量编码器，不修改TIM4 PWM、TB6612方向或待机状态。
+ */
+void App_MotorTask(void *argument)
+{
+    uint32_t log_sample_count = 0U;
+    uint32_t sample_tick;
+    int32_t rpm_sum_x10 = 0;
+    int32_t delta_sum = 0;
+
+    (void)argument;
+
+    BSP_Encoder_Init();
+
+    if (!BSP_Encoder_Start())
+    {
+        /*
+         * TIM3启动失败时不读取无效数据，也不改变电机状态。
+         * 保留任务周期运行，避免异常路径形成无延时死循环。
+         */
+        DebugLog_Printf("encoder start failed\r\n");
+
+        for (;;)
+        {
+            osDelay(1000U);
+        }
+    }
+
+    DebugLog_Printf(
+        "encoder start ok, sample=%lu ms, cpr=%lu\r\n",
+        (unsigned long)APP_ENCODER_SAMPLE_PERIOD_MS,
+        (unsigned long)1400U);
+
+    /*
+     * 以启动成功时的内核节拍为基准，后续每次增加50 ms，
+     * 避免计算和日志发送耗时累计进采样周期。
+     */
+    sample_tick = osKernelGetTickCount();
+
+    for (;;)
+    {
+        int16_t delta;
+        int32_t rpm_x10;
+
+        /*
+         * 任务先等待一个完整采样周期，再读取增量。
+         * 启动时已经同步上次计数，因此首个结果对应实际50 ms窗口。
+         */
+        sample_tick += APP_ENCODER_SAMPLE_PERIOD_MS;
+
+        /* 使用绝对节拍延时，保持稳定的50 ms采样周期。 */
+        (void)osDelayUntil(sample_tick);
+
+        delta = BSP_Encoder_ReadDelta(NULL);
+
+        rpm_x10 = BSP_Encoder_CountToRpmX10(
+            delta,
+            APP_ENCODER_SAMPLE_PERIOD_MS);
+
+        delta_sum += (int32_t)delta;
+        rpm_sum_x10 += rpm_x10;
+        log_sample_count++;
+
+        if (log_sample_count >= APP_ENCODER_LOG_SAMPLE_COUNT)
+        {
+            int32_t average_rpm_x10;
+            uint32_t rpm_magnitude;
+            const char *direction_text;
+
+            average_rpm_x10 =
+                rpm_sum_x10 /
+                (int32_t)APP_ENCODER_LOG_SAMPLE_COUNT;
+
+            if (delta_sum > 0)
+            {
+                direction_text = "forward";
+            }
+            else if (delta_sum < 0)
+            {
+                direction_text = "reverse";
+            }
+            else
+            {
+                direction_text = "stopped";
+            }
+
+            /*
+             * 日志格式化不使用浮点数。
+             * 先取得绝对值，再分别输出整数位和一位小数。
+             */
+            if (average_rpm_x10 < 0)
+            {
+                rpm_magnitude =
+                    (uint32_t)(-average_rpm_x10);
+            }
+            else
+            {
+                rpm_magnitude =
+                    (uint32_t)average_rpm_x10;
+            }
+
+            DebugLog_Printf(
+                "encoder count=%u delta=%ld "
+                "dir=%s rpm=%s%lu.%lu\r\n",
+                (unsigned int)BSP_Encoder_ReadCount(),
+                (long)delta_sum,
+                direction_text,
+                (average_rpm_x10 < 0) ? "-" : "",
+                (unsigned long)(rpm_magnitude / 10U),
+                (unsigned long)(rpm_magnitude % 10U));
+
+            delta_sum = 0;
+            rpm_sum_x10 = 0;
+            log_sample_count = 0U;
+        }
     }
 }

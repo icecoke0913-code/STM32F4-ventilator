@@ -65,6 +65,13 @@ const osThreadAttr_t sensorTask_attributes = {
   .stack_size = 256 * 4,
   .priority = (osPriority_t) osPriorityNormal,
 };
+/* Definitions for motorTask */
+osThreadId_t motorTaskHandle;
+const osThreadAttr_t motorTask_attributes = {
+  .name = "motorTask",
+  .stack_size = 256 * 4,
+  .priority = (osPriority_t) osPriorityNormal,
+};
 
 /* Private function prototypes -----------------------------------------------*/
 /* USER CODE BEGIN FunctionPrototypes */
@@ -73,6 +80,7 @@ const osThreadAttr_t sensorTask_attributes = {
 
 void StartDefaultTask(void *argument);
 void StartSensorTask(void *argument);
+void StartMotorTask(void *argument);
 
 void MX_FREERTOS_Init(void); /* (MISRA C 2004 rule 8.1) */
 
@@ -118,6 +126,9 @@ void MX_FREERTOS_Init(void) {
   /* creation of sensorTask */
   sensorTaskHandle = osThreadNew(StartSensorTask, NULL, &sensorTask_attributes);
 
+  /* creation of motorTask */
+  motorTaskHandle = osThreadNew(StartMotorTask, NULL, &motorTask_attributes);
+
   /* USER CODE BEGIN RTOS_THREADS */
   /* add threads, ... */
   /* USER CODE END RTOS_THREADS */
@@ -157,6 +168,24 @@ void StartSensorTask(void *argument)
   /* 将CubeMX任务入口委托给独立App层，防止重新生成覆盖业务逻辑。 */
   App_SensorTask(argument);
   /* USER CODE END StartSensorTask */
+}
+
+/* USER CODE BEGIN Header_StartMotorTask */
+/**
+* @brief Function implementing the motorTask thread.
+* @param argument: Not used
+* @retval None
+*/
+/* USER CODE END Header_StartMotorTask */
+void StartMotorTask(void *argument)
+{
+  /* USER CODE BEGIN StartMotorTask */
+	/*
+   * 将CubeMX任务入口委托给独立App层，
+   * 防止重新生成代码时覆盖编码器测速业务逻辑。
+   */
+  App_MotorTask(argument);
+  /* USER CODE END StartMotorTask */
 }
 
 /* Private application code --------------------------------------------------*/

@@ -134,9 +134,10 @@ Expected: `0 Error(s), 0 Warning(s)`。出现句柄未定义或重复文件时�
 
 ```c
 void BSP_Encoder_Init(void);
-void BSP_Encoder_Start(void);
+bool BSP_Encoder_Start(void);
 void BSP_Encoder_Stop(void);
-int16_t BSP_Encoder_ReadDelta(void);
+uint16_t BSP_Encoder_ReadCount(void);
+int16_t BSP_Encoder_ReadDelta(Encoder_Direction_t *direction);
 int32_t BSP_Encoder_CountToRpmX10(int16_t delta, uint32_t sample_ms);
 ```
 
@@ -180,7 +181,7 @@ git commit -m "feat: add TIM3 encoder BSP"
 - Modify: `firmware/SmartHood/Core/Src/freertos.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 增加任务接口和任务参数**
+- [x] **Step 1: 增加任务接口和任务参数**
 
 在`app_tasks.h`声明：
 
@@ -190,7 +191,7 @@ void App_MotorTask(void *argument);
 
 在FreeRTOS配置中新增`motorTask`：Normal优先级、256 Words动态栈、入口`StartMotorTask`。不修改现有defaultTask和sensorTask。
 
-- [ ] **Step 2: 保持CubeMX委托结构**
+- [x] **Step 2: 保持CubeMX委托结构**
 
 ```c
 static void StartMotorTask(void *argument)
@@ -199,15 +200,15 @@ static void StartMotorTask(void *argument)
 }
 ```
 
-- [ ] **Step 3: 实现50 ms采样和500 ms日志**
+- [x] **Step 3: 实现50 ms采样和500 ms日志**
 
 任务启动TIM3，保存初始计数；之后每50 ms读取增量、判断方向并换算`rpm_x10`，每10次通过`DebugLog_Printf()`输出一次。使用CMSIS-RTOS2的绝对延时或等效固定周期方式，避免任务漂移。
 
-- [ ] **Step 4: 保持M4行为不变**
+- [x] **Step 4: 保持M4行为不变**
 
 确认`App_DefaultTask`仍负责PA0挡位和`BSP_Motor_SetDuty()`；`App_MotorTask`只读编码器，不写TIM4 CCR、不改变STBY和方向脚。
 
-- [ ] **Step 5: 提交任务集成检查点**
+- [x] **Step 5: 提交任务集成检查点**
 
 ```powershell
 git add firmware/SmartHood/App/Inc/app_tasks.h firmware/SmartHood/App/Src/app_tasks.c firmware/SmartHood/Core/Src/freertos.c firmware/SmartHood/MDK-ARM/SmartHood.uvprojx
@@ -219,15 +220,15 @@ git commit -m "feat: add motor encoder measurement task"
 **Files:**
 - Verify: all modified M5 source and generated files
 
-- [ ] **Step 1: 检查中文注释与接口一致性**
+- [x] **Step 1: 检查中文注释与接口一致性**
 
 确认新增自编代码均有模块职责、公开接口、单位、错误路径和关键参数中文注释；头文件声明与实现签名必须一致。
 
-- [ ] **Step 2: Rebuild Keil工程**
+- [x] **Step 2: Rebuild Keil工程**
 
 Expected: `0 Error(s), 0 Warning(s)`；记录Code、RO-data、RW-data、ZI-data和Build Time。
 
-- [ ] **Step 3: 检查差异**
+- [x] **Step 3: 检查差异**
 
 ```powershell
 git diff --check
