@@ -104,7 +104,7 @@ git commit -m "docs: start M6 relative PI control"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 创建 Control 目录**
+- [x] **Step 1: 创建 Control 目录**
 
 创建物理目录：
 
@@ -121,7 +121,7 @@ Keil 工程中新增`Control`和`Control Test`两个 Group；Include Paths 增�
 ..\Control\Test
 ```
 
-- [ ] **Step 2: 编写 PI 公共接口**
+- [x] **Step 2: 编写 PI 公共接口**
 
 创建`control_pi.h`：
 
@@ -173,7 +173,7 @@ int32_t ControlPi_GetIntegral(const ControlPi_t *controller);
 #endif /* CONTROL_PI_H */
 ```
 
-- [ ] **Step 3: 编写板端自检接口**
+- [x] **Step 3: 编写板端自检接口**
 
 创建`control_pi_selftest.h`：
 
@@ -193,7 +193,7 @@ bool ControlPi_RunSelfTests(void);
 #endif /* CONTROL_PI_SELFTEST_H */
 ```
 
-- [ ] **Step 4: 编写预期失败的自检**
+- [x] **Step 4: 编写预期失败的自检**
 
 创建`control_pi_selftest.c`：
 
@@ -270,7 +270,7 @@ bool ControlPi_RunSelfTests(void)
 }
 ```
 
-- [ ] **Step 5: 临时接入自检调用**
+- [x] **Step 5: 临时接入自检调用**
 
 在`app_tasks.c`包含区增加：
 
@@ -305,13 +305,13 @@ bool ControlPi_RunSelfTests(void)
 #endif
 ```
 
-- [ ] **Step 6: Rebuild，确认红灯**
+- [x] **Step 6: Rebuild，确认红灯**
 
 暂时不要创建`control_pi.c`。Rebuild。
 
 Expected: 链接失败，至少报告`ControlPi_Init`、`ControlPi_Update`、`ControlPi_Reset`和`ControlPi_GetIntegral`未定义。失败原因必须是实现尚不存在，而不是头文件路径或语法错误。
 
-- [ ] **Step 7: 提交失败自检检查点**
+- [x] **Step 7: 提交失败自检检查点**
 
 ```powershell
 git add firmware/SmartHood/Control `

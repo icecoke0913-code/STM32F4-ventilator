@@ -13,6 +13,9 @@
 #include "bsp_st7735s.h"
 #include "bsp_encoder.h"
 
+#include "control_pi.h"
+#include "control_pi_selftest.h"
+
 #include "cmsis_os2.h"
 #include "debug_log.h"
 #include "gpio.h"
@@ -31,6 +34,13 @@
 
 /** 每10次采样输出一次日志，即约500 ms输出一次。 */
 #define APP_ENCODER_LOG_SAMPLE_COUNT    10U
+
+/**
+ * @brief M6 PI 控制器临时板端自检开关。
+ *
+ * 设置为1时运行自检；完成初次验证后将改为0。
+ */
+#define APP_CONTROL_PI_SELF_TEST_ENABLED 1U
 
 /** M4固定正转挡位，占空比按短按顺序循环。 */
 static const uint8_t app_motor_duty_levels[] =
@@ -400,6 +410,25 @@ void App_MotorTask(void *argument)
     int32_t delta_sum = 0;
 
     (void)argument;
+
+#if APP_CONTROL_PI_SELF_TEST_ENABLED
+    /*
+     * 电机控制启动前先检查纯算法。
+     * 任一测试失败都停止电机并留在安全循环中。
+     */
+    if (!ControlPi_RunSelfTests())
+    {
+        DebugLog_Printf("control PI self-test FAILED\r\n");
+        BSP_Motor_Stop();
+
+        for (;;)
+        {
+            osDelay(1000U);
+        }
+    }
+
+    DebugLog_Printf("control PI self-test PASSED\r\n");
+#endif
 
     BSP_Encoder_Init();
 
