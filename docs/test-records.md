@@ -359,3 +359,14 @@
 - 每约500ms输出状态、目标计数、平均实际计数、误差、PWM、积分、故障和方向日志，不再把相对计数描述为精确RPM。
 - Rebuild结果：Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒。
 - 本检查点只完成软件集成构建，尚未烧录或执行无电机故障锁存、低档闭环、高档阶跃和编码器断线测试。
+
+### 2026-08-16：M6无电机故障锁存验证
+
+- 测试前完全断电并断开TB6612的VM，STM32、ST-Link、USB转TTL和逻辑接线保持连接；未在通电状态插拔电机或编码器线。
+- 烧录M6闭环固件后，上电持续输出`state=STOP`、`target=0`、`actual=0`、`duty=0`、`integral=0`和`fault=0`，电机控制默认保持停止。
+- STOP状态短按PA0后进入低档软启动；因VM断开、编码器无有效计数，约在规定窗口后输出`motor state=FAULT reason=ENCODER_TIMEOUT duty=0%`。
+- FAULT锁存期间持续输出`state=FAULT`、`target=0`、`actual=0`、`duty=0`、`integral=0`和`fault=1`，没有自动重试或恢复输出。
+- 清除后第二次按键可以重新进入LOW；截图样本在无反馈时PI输出上升到86%，未超过90%上限，随后再次触发ENCODER_TIMEOUT并归零。
+- FAULT状态只短按一次PA0后，日志连续多次保持`state=STOP`、`duty=0`和`fault=0`，heartbeat从37增长到39，确认清故障不会自动重新启动。
+- DHT11在测试期间继续输出`status=OK`，heartbeat持续运行；未观察到任务卡死或异常复位。
+- 结论：上电STOP、无反馈故障停机、FAULT持续锁存、人工清除保持STOP和第二次按键才重启均通过；本记录不代表带电机闭环或负载测试通过。

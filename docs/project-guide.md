@@ -299,7 +299,8 @@
 - PI自检串口输出`control PI self-test PASSED`，TFT、DHT11、heartbeat和编码器启动回归正常；正式构建已将临时自检开关恢复为`0U`。
 - 已建立PA0到MotorTask的NEXT命令队列，DefaultTask不再初始化电机或直接修改PWM；队列在任务创建前完成初始化。
 - MotorTask已实现STOP、低/高档软启动、相对计数PI闭环和编码器无反馈FAULT锁存，并成为唯一修改PWM的任务。
-- 当前闭环状态机构建通过但尚未烧录；下一步先隔离电机输出，验证上电STOP、500ms无反馈故障和人工清除不自动重启。
+- VM隔离测试已验证上电STOP、无反馈ENCODER_TIMEOUT、FAULT持续锁存、第一次PA0清故障保持STOP及第二次PA0才重新启动。
+- 下一步断电恢复VM和电机接线，执行低档空载闭环观察；仍禁止扇叶、机械负载、堵转和长时间温升测试。
 
 ## 设计依据
 

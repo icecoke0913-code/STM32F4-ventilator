@@ -962,11 +962,11 @@ git commit -m "feat: add M6 relative speed control state machine"
 **Files:**
 - Modify: `docs/test-records.md`
 
-- [ ] **Step 1: 断电并隔离电机输出**
+- [x] **Step 1: 断电并隔离电机输出**
 
 断开电机 AO1/AO2 或断开 TB6612 VM。STM32、ST-Link、USB 转 TTL 可正常连接。不要在通电状态插拔电机线。
 
-- [ ] **Step 2: 烧录并检查上电停止**
+- [x] **Step 2: 烧录并检查上电停止**
 
 Expected:
 
@@ -977,7 +977,7 @@ control state=STOP target=0 actual=0 duty=0 fault=0
 
 PA1 心跳、DHT11 和 TFT 回归功能继续正常。
 
-- [ ] **Step 3: 按 PA0 触发无反馈故障**
+- [x] **Step 3: 按 PA0 触发无反馈故障**
 
 第一次短按后应先出现`LOW_START duty=30%`，约 300 ms 后进入 LOW；再经过约 500 ms 无计数后出现：
 
@@ -985,7 +985,7 @@ PA1 心跳、DHT11 和 TFT 回归功能继续正常。
 motor state=FAULT reason=ENCODER_TIMEOUT duty=0%
 ```
 
-- [ ] **Step 4: 验证故障清除不自动重启**
+- [x] **Step 4: 验证故障清除不自动重启**
 
 FAULT 状态按一次 PA0。
 
@@ -997,7 +997,7 @@ motor fault cleared, state=STOP
 
 此时必须保持停止。第二次按 PA0 才再次进入`LOW_START`。
 
-- [ ] **Step 5: 记录并提交**
+- [x] **Step 5: 记录并提交**
 
 ```powershell
 git add docs/test-records.md
