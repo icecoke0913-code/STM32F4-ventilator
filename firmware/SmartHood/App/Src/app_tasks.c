@@ -40,7 +40,7 @@
  *
  * 设置为1时运行自检；完成初次验证后将改为0。
  */
-#define APP_CONTROL_PI_SELF_TEST_ENABLED 1U
+#define APP_CONTROL_PI_SELF_TEST_ENABLED 0U
 
 /** M4固定正转挡位，占空比按短按顺序循环。 */
 static const uint8_t app_motor_duty_levels[] =

@@ -326,7 +326,7 @@ git commit -m "test: add M6 PI controller self-test"
 - Create: `firmware/SmartHood/Control/Src/control_pi.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 编写最小 PI 实现**
+- [x] **Step 1: 编写最小 PI 实现**
 
 创建`control_pi.c`：
 
@@ -456,15 +456,15 @@ int32_t ControlPi_GetIntegral(const ControlPi_t *controller)
 }
 ```
 
-- [ ] **Step 2: 加入 Keil Control Group**
+- [x] **Step 2: 加入 Keil Control Group**
 
 将`control_pi.c`加入`Control` Group，将`control_pi_selftest.c`加入`Control Test` Group。确认两个文件各出现一次。
 
-- [ ] **Step 3: Rebuild，确认绿灯**
+- [x] **Step 3: Rebuild，确认绿灯**
 
 Expected: `0 Error(s), 0 Warning(s)`。
 
-- [ ] **Step 4: 不接电机执行板端自检**
+- [x] **Step 4: 不接电机执行板端自检**
 
 断开 TB6612 VM 或断开电机 AO1/AO2，烧录并打开串口。
 
@@ -476,7 +476,7 @@ control PI self-test PASSED
 
 不得出现`FAILED`，且电机不得转动。
 
-- [ ] **Step 5: 关闭临时自检并再次 Rebuild**
+- [x] **Step 5: 关闭临时自检并再次 Rebuild**
 
 将：
 
@@ -492,7 +492,7 @@ control PI self-test PASSED
 
 Rebuild。Expected: `0 Error(s), 0 Warning(s)`。
 
-- [ ] **Step 6: 提交 PI 实现**
+- [x] **Step 6: 提交 PI 实现**
 
 ```powershell
 git add firmware/SmartHood/Control `

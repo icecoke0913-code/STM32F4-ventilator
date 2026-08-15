@@ -326,3 +326,15 @@
 - 当前RPM使用理论`1400 counts/输出轴圈`换算；10圈约16秒的粗测与显示值存在明显偏差，但用户明确决定不继续实际CPR标定，因此该项记录为跳过、未执行，不把RPM作为精确转速。M5保留固定正转对应`reverse`的方向关系，未执行人为双向精确验证。
 - 合并到`main`后的最终Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 23秒。
 - 最终HEX SHA-256：`7E9543FC3A23014FC07FB54B5D550A6986F867067CF8B40C7C0B55F1B8F612E4`。
+
+### 2026-08-15：M6 PI控制器红灯、绿灯与板端自检
+
+- 新增纯算法`Control`模块，公共接口和实现不访问HAL、FreeRTOS或电机驱动，使用Q8定点比例和积分系数。
+- 自检覆盖零误差前馈、正误差增速、负误差减速、30%/90%输出限幅和积分抗饱和。
+- TDD红灯构建成功编译`control_pi_selftest.c`，链接阶段仅报告`ControlPi_Init`、`ControlPi_Update`、`ControlPi_Reset`和`ControlPi_GetIntegral`未定义，结果为4 Error(s)、0 Warning(s)。
+- 加入最小PI实现后的绿灯Rebuild：Code=27446、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)。
+- 隔离电机输出执行板端自检，串口输出`control PI self-test PASSED`和`encoder start ok`；同时`motor init ok, state=STOP`、DHT11 `status=OK`、ST7735S启动测试与heartbeat均正常。
+- 初次验证完成后将`APP_CONTROL_PI_SELF_TEST_ENABLED`恢复为`0U`；`control_pi.c`和`control_pi_selftest.c`仍参与编译，但未被运行时路径引用的代码由链接器移除。
+- 关闭临时自检后的最终Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 14秒。
+- 程序已下载并通过Flash Verify；最终HEX SHA-256为`79828DBFA4406B3F92A9A44793F90D38EF316B634C86E95CAC9A20AFD7B914C5`。
+- 本检查点只验证PI纯算法和既有功能回归，不代表电机闭环、软启动或编码器故障锁存已经实现或通过。

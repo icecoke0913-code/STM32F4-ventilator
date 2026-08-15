@@ -295,7 +295,9 @@
 - 已创建功能分支`codex/feature-m6-relative-pi`，从已完成M5的`main`开始。
 - M6开始前Rebuild：Code=26986、RO-data=1338、RW-data=164、ZI-data=39668，0 Error(s)、0 Warning(s)，Build Time 30秒。
 - 基线HEX SHA-256：`7E9543FC3A23014FC07FB54B5D550A6986F867067CF8B40C7C0B55F1B8F612E4`。
-- 当前只完成分支和基线检查，尚未创建Control模块或修改电机运行逻辑。
+- 已建立`Control/Inc`、`Control/Src`和`Control/Test`，完成Q8定点PI、输出限幅、积分抗饱和和板端自检。
+- PI自检串口输出`control PI self-test PASSED`，TFT、DHT11、heartbeat和编码器启动回归正常；正式构建已将临时自检开关恢复为`0U`。
+- 当前尚未迁移电机PWM所有权，也未实现闭环状态机、软启动或编码器故障锁存；下一步由`App_MotorTask`统一接管电机命令。
 
 ## 设计依据
 
