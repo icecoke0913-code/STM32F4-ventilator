@@ -29,11 +29,56 @@
 /** PA1翻转和心跳日志继续保持原有1秒周期。 */
 #define APP_HEARTBEAT_PERIOD_MS     1000U
 
-/** 编码器测速采样周期，与后续PID控制周期保持一致。 */
-#define APP_ENCODER_SAMPLE_PERIOD_MS    50U
+/** 电机闭环控制周期，同时也是编码器增量采样周期。 */
+#define APP_CONTROL_PERIOD_MS              50U
 
-/** 每10次采样输出一次日志，即约500 ms输出一次。 */
-#define APP_ENCODER_LOG_SAMPLE_COUNT    10U
+/** 每10个控制周期输出一次日志，即约500ms。 */
+#define APP_CONTROL_LOG_SAMPLE_COUNT       10U
+
+/** 进入低档或高档前使用30% PWM软启动。 */
+#define APP_MOTOR_START_DUTY_PERCENT       30U
+
+/** 软启动持续时间，结束后才进入PI闭环。 */
+#define APP_MOTOR_START_TIME_MS            300U
+
+/** 低档和高档每50ms的目标编码器计数绝对值。 */
+#define APP_MOTOR_LOW_TARGET_COUNT         130L
+#define APP_MOTOR_HIGH_TARGET_COUNT        195L
+
+/** 两个挡位的基础前馈PWM百分比。 */
+#define APP_MOTOR_LOW_FEEDFORWARD          50L
+#define APP_MOTOR_HIGH_FEEDFORWARD         70L
+
+/** PI控制器允许输出的PWM百分比范围。 */
+#define APP_MOTOR_OUTPUT_MIN               30L
+#define APP_MOTOR_OUTPUT_MAX               90L
+
+/** 实际计数不超过1时，视为编码器没有有效反馈。 */
+#define APP_ENCODER_ZERO_THRESHOLD         1L
+
+/** 连续10个周期无反馈，即500ms后锁存故障。 */
+#define APP_ENCODER_FAULT_SAMPLE_COUNT     10U
+
+/** Q8定点PI初始参数：Kp=0.25，Ki=0.015625。 */
+#define APP_CONTROL_KP_Q8                  64L
+#define APP_CONTROL_KI_Q8                  4L
+
+/** 积分累计值的上下限。 */
+#define APP_CONTROL_INTEGRAL_MIN           (-2048L)
+#define APP_CONTROL_INTEGRAL_MAX           2048L
+
+/**
+ * @brief 电机控制任务的内部状态。
+ */
+typedef enum
+{
+    APP_MOTOR_STATE_STOP = 0,  /**< 电机停止，等待NEXT命令。 */
+    APP_MOTOR_STATE_LOW_START, /**< 低档30%软启动阶段。 */
+    APP_MOTOR_STATE_LOW_PI,    /**< 低档PI闭环阶段。 */
+    APP_MOTOR_STATE_HIGH_START,/**< 高档30%软启动阶段。 */
+    APP_MOTOR_STATE_HIGH_PI,   /**< 高档PI闭环阶段。 */
+    APP_MOTOR_STATE_FAULT      /**< 编码器无反馈故障锁存。 */
+} App_MotorState_t;
 
 /**
  * @brief M6 PI 控制器临时板端自检开关。
@@ -97,6 +142,65 @@ static bool App_MotorPostNextCommand(void)
                              &command,
                              0U,
                              0U) == osOK;
+}
+
+/**
+ * @brief 将电机内部状态转换为串口日志文本。
+ *
+ * @param state 当前电机状态。
+ *
+ * @return 与状态对应的固定字符串。
+ */
+static const char *App_MotorStateText(App_MotorState_t state)
+{
+    switch (state)
+    {
+        case APP_MOTOR_STATE_LOW_START:
+            return "LOW_START";
+
+        case APP_MOTOR_STATE_LOW_PI:
+            return "LOW";
+
+        case APP_MOTOR_STATE_HIGH_START:
+            return "HIGH_START";
+
+        case APP_MOTOR_STATE_HIGH_PI:
+            return "HIGH";
+
+        case APP_MOTOR_STATE_FAULT:
+            return "FAULT";
+
+        case APP_MOTOR_STATE_STOP:
+        default:
+            return "STOP";
+    }
+}
+
+/**
+ * @brief 根据当前状态选择每50ms的目标编码器计数。
+ *
+ * 软启动阶段也返回对应挡位目标，便于日志提前显示最终目标；
+ * STOP和FAULT不允许控制输出，因此目标返回0。
+ *
+ * @param state 当前电机状态。
+ *
+ * @return 当前状态对应的目标编码器计数绝对值。
+ */
+static int32_t App_MotorTargetCount(App_MotorState_t state)
+{
+    if ((state == APP_MOTOR_STATE_LOW_START) ||
+        (state == APP_MOTOR_STATE_LOW_PI))
+    {
+        return APP_MOTOR_LOW_TARGET_COUNT;
+    }
+
+    if ((state == APP_MOTOR_STATE_HIGH_START) ||
+        (state == APP_MOTOR_STATE_HIGH_PI))
+    {
+        return APP_MOTOR_HIGH_TARGET_COUNT;
+    }
+
+    return 0L;
 }
 
 /**
@@ -385,25 +489,28 @@ void App_SensorTask(void *argument)
 }
 
 /**
- * @brief 每50 ms读取一次编码器，并每约500 ms输出计数、方向和RPM。
+ * @brief 电机控制任务：每50ms读取编码器并执行软启动、PI和故障停机。
  * @param argument FreeRTOS任务参数，本项目未使用。
  *
- * M5只测量编码器，不修改TIM4 PWM、TB6612方向或待机状态。
+ * MotorTask是唯一允许初始化TB6612、修改PWM和改变电机状态的任务。
+ * PA0所在的DefaultTask只通过消息队列发送NEXT命令。
  */
 void App_MotorTask(void *argument)
 {
-    uint32_t log_sample_count = 0U;
+    ControlPi_t controller;
+    App_MotorState_t state = APP_MOTOR_STATE_STOP;
     uint32_t sample_tick;
-    int32_t rpm_sum_x10 = 0;
-    int32_t delta_sum = 0;
+    uint32_t state_enter_tick;
+    uint32_t log_sample_count = 0U;
+    uint32_t zero_sample_count = 0U;
+    int32_t actual_sum = 0L;
+    int32_t signed_delta_sum = 0L;
+    uint8_t duty_percent = 0U;
 
     (void)argument;
 
 #if APP_CONTROL_PI_SELF_TEST_ENABLED
-    /*
-     * 电机控制启动前先检查纯算法。
-     * 任一测试失败都停止电机并留在安全循环中。
-     */
+    /* 临时自检开关为1时，电机初始化前先验证PI纯算法。 */
     if (!ControlPi_RunSelfTests())
     {
         DebugLog_Printf("control PI self-test FAILED\r\n");
@@ -418,72 +525,204 @@ void App_MotorTask(void *argument)
     DebugLog_Printf("control PI self-test PASSED\r\n");
 #endif
 
-    BSP_Encoder_Init();
+    /* 初始化PI参数、积分范围和PWM输出范围。 */
+    ControlPi_Init(&controller,
+                   APP_CONTROL_KP_Q8,
+                   APP_CONTROL_KI_Q8,
+                   APP_CONTROL_INTEGRAL_MIN,
+                   APP_CONTROL_INTEGRAL_MAX,
+                   APP_MOTOR_OUTPUT_MIN,
+                   APP_MOTOR_OUTPUT_MAX);
 
-    if (!BSP_Encoder_Start())
+    /* 电机初始化失败时持续执行安全停止，不进入控制循环。 */
+    if (!BSP_Motor_Init())
     {
-        /*
-         * TIM3启动失败时不读取无效数据，也不改变电机状态。
-         * 保留任务周期运行，避免异常路径形成无延时死循环。
-         */
-        DebugLog_Printf("encoder start failed\r\n");
+        DebugLog_Printf("motor init failed, state=STOP\r\n");
 
         for (;;)
         {
+            BSP_Motor_Stop();
             osDelay(1000U);
         }
     }
 
-    DebugLog_Printf(
-        "encoder start ok, sample=%lu ms, cpr=%lu\r\n",
-        (unsigned long)APP_ENCODER_SAMPLE_PERIOD_MS,
-        (unsigned long)1400U);
+    BSP_Encoder_Init();
 
-    /*
-     * 以启动成功时的内核节拍为基准，后续每次增加50 ms，
-     * 避免计算和日志发送耗时累计进采样周期。
-     */
+    /* 编码器定时器启动失败时禁止电机运行。 */
+    if (!BSP_Encoder_Start())
+    {
+        DebugLog_Printf("encoder start failed, state=STOP\r\n");
+
+        for (;;)
+        {
+            BSP_Motor_Stop();
+            osDelay(1000U);
+        }
+    }
+
+    /* 所有初始化完成后仍强制保持STOP，等待PA0命令。 */
+    BSP_Motor_Stop();
+    DebugLog_Printf("motor control ready, state=STOP\r\n");
+
     sample_tick = osKernelGetTickCount();
+    state_enter_tick = sample_tick;
 
     for (;;)
     {
+        App_MotorCommand_t command;
+        Encoder_Direction_t direction;
         int16_t delta;
-        int32_t rpm_x10;
+        int32_t delta_32;
+        int32_t actual_count;
+        int32_t target_count;
+        int32_t feedforward;
+        uint32_t now_tick;
 
-        /*
-         * 任务先等待一个完整采样周期，再读取增量。
-         * 启动时已经同步上次计数，因此首个结果对应实际50 ms窗口。
-         */
-        sample_tick += APP_ENCODER_SAMPLE_PERIOD_MS;
-
-        /* 使用绝对节拍延时，保持稳定的50 ms采样周期。 */
+        /* 使用绝对节拍保持稳定的50ms控制周期。 */
+        sample_tick += APP_CONTROL_PERIOD_MS;
         (void)osDelayUntil(sample_tick);
+        now_tick = osKernelGetTickCount();
 
-        delta = BSP_Encoder_ReadDelta(NULL);
+        /* 每个周期最多处理一个NEXT命令，且不阻塞闭环计算。 */
+        if (osMessageQueueGet(app_motor_command_queue,
+                              &command,
+                              NULL,
+                              0U) == osOK)
+        {
+            if (state == APP_MOTOR_STATE_FAULT)
+            {
+                /* FAULT第一次按键只清除故障，不自动重新启动。 */
+                state = APP_MOTOR_STATE_STOP;
+                BSP_Motor_Stop();
+                ControlPi_Reset(&controller);
+                zero_sample_count = 0U;
+                duty_percent = 0U;
+                DebugLog_Printf(
+                    "motor fault cleared, state=STOP\r\n");
+            }
+            else if (state == APP_MOTOR_STATE_STOP)
+            {
+                /* STOP按键后先进入低档30%软启动。 */
+                state = APP_MOTOR_STATE_LOW_START;
+                state_enter_tick = now_tick;
+                ControlPi_Reset(&controller);
+                BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
+                duty_percent = APP_MOTOR_START_DUTY_PERCENT;
+                DebugLog_Printf(
+                    "motor state=LOW_START duty=30%%\r\n");
+            }
+            else if ((state == APP_MOTOR_STATE_LOW_START) ||
+                     (state == APP_MOTOR_STATE_LOW_PI))
+            {
+                /* 低档按键后重新以30%软启动进入高档。 */
+                state = APP_MOTOR_STATE_HIGH_START;
+                state_enter_tick = now_tick;
+                ControlPi_Reset(&controller);
+                BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
+                duty_percent = APP_MOTOR_START_DUTY_PERCENT;
+                DebugLog_Printf(
+                    "motor state=HIGH_START duty=30%%\r\n");
+            }
+            else
+            {
+                /* 高档再次按键进入STOP。 */
+                state = APP_MOTOR_STATE_STOP;
+                BSP_Motor_Stop();
+                ControlPi_Reset(&controller);
+                zero_sample_count = 0U;
+                duty_percent = 0U;
+                DebugLog_Printf(
+                    "motor state=STOP duty=0%%\r\n");
+            }
+        }
 
-        rpm_x10 = BSP_Encoder_CountToRpmX10(
-            delta,
-            APP_ENCODER_SAMPLE_PERIOD_MS);
+        /* 固定正转可能得到负计数，因此PI使用计数绝对值。 */
+        delta = BSP_Encoder_ReadDelta(&direction);
+        delta_32 = (int32_t)delta;
+        actual_count = (delta_32 < 0L) ? -delta_32 : delta_32;
+        target_count = App_MotorTargetCount(state);
+        feedforward = 0L;
 
-        delta_sum += (int32_t)delta;
-        rpm_sum_x10 += rpm_x10;
+        /* 两个挡位均先保持30%软启动300ms。 */
+        if ((state == APP_MOTOR_STATE_LOW_START) ||
+            (state == APP_MOTOR_STATE_HIGH_START))
+        {
+            BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
+            duty_percent = APP_MOTOR_START_DUTY_PERCENT;
+
+            if ((uint32_t)(now_tick - state_enter_tick) >=
+                APP_MOTOR_START_TIME_MS)
+            {
+                state = (state == APP_MOTOR_STATE_LOW_START) ?
+                    APP_MOTOR_STATE_LOW_PI :
+                    APP_MOTOR_STATE_HIGH_PI;
+                ControlPi_Reset(&controller);
+                zero_sample_count = 0U;
+            }
+        }
+
+        /* 只有PI状态才检测编码器无反馈并计算控制输出。 */
+        if ((state == APP_MOTOR_STATE_LOW_PI) ||
+            (state == APP_MOTOR_STATE_HIGH_PI))
+        {
+            if (actual_count <= APP_ENCODER_ZERO_THRESHOLD)
+            {
+                zero_sample_count++;
+            }
+            else
+            {
+                zero_sample_count = 0U;
+            }
+
+            if (zero_sample_count >= APP_ENCODER_FAULT_SAMPLE_COUNT)
+            {
+                /* 连续500ms无反馈时立即停止并锁存FAULT。 */
+                state = APP_MOTOR_STATE_FAULT;
+                BSP_Motor_Stop();
+                ControlPi_Reset(&controller);
+                duty_percent = 0U;
+                DebugLog_Printf(
+                    "motor state=FAULT "
+                    "reason=ENCODER_TIMEOUT duty=0%%\r\n");
+            }
+            else
+            {
+                feedforward =
+                    (state == APP_MOTOR_STATE_LOW_PI) ?
+                    APP_MOTOR_LOW_FEEDFORWARD :
+                    APP_MOTOR_HIGH_FEEDFORWARD;
+
+                duty_percent = (uint8_t)ControlPi_Update(
+                    &controller,
+                    target_count,
+                    actual_count,
+                    feedforward);
+                BSP_Motor_SetDuty(duty_percent);
+            }
+        }
+
+        /* 累计10个控制周期，每约500ms输出一次平均状态。 */
+        actual_sum += actual_count;
+        signed_delta_sum += delta_32;
         log_sample_count++;
 
-        if (log_sample_count >= APP_ENCODER_LOG_SAMPLE_COUNT)
+        if (log_sample_count >= APP_CONTROL_LOG_SAMPLE_COUNT)
         {
-            int32_t average_rpm_x10;
-            uint32_t rpm_magnitude;
+            int32_t actual_average;
+            int32_t error_average;
             const char *direction_text;
 
-            average_rpm_x10 =
-                rpm_sum_x10 /
-                (int32_t)APP_ENCODER_LOG_SAMPLE_COUNT;
+            actual_average =
+                actual_sum /
+                (int32_t)APP_CONTROL_LOG_SAMPLE_COUNT;
+            error_average = target_count - actual_average;
 
-            if (delta_sum > 0)
+            /* 使用10个周期的计数总和判断方向，降低抖动。 */
+            if (signed_delta_sum > 0L)
             {
                 direction_text = "forward";
             }
-            else if (delta_sum < 0)
+            else if (signed_delta_sum < 0L)
             {
                 direction_text = "reverse";
             }
@@ -492,33 +731,21 @@ void App_MotorTask(void *argument)
                 direction_text = "stopped";
             }
 
-            /*
-             * 日志格式化不使用浮点数。
-             * 先取得绝对值，再分别输出整数位和一位小数。
-             */
-            if (average_rpm_x10 < 0)
-            {
-                rpm_magnitude =
-                    (uint32_t)(-average_rpm_x10);
-            }
-            else
-            {
-                rpm_magnitude =
-                    (uint32_t)average_rpm_x10;
-            }
-
             DebugLog_Printf(
-                "encoder count=%u delta=%ld "
-                "dir=%s rpm=%s%lu.%lu\r\n",
-                (unsigned int)BSP_Encoder_ReadCount(),
-                (long)delta_sum,
-                direction_text,
-                (average_rpm_x10 < 0) ? "-" : "",
-                (unsigned long)(rpm_magnitude / 10U),
-                (unsigned long)(rpm_magnitude % 10U));
+                "control state=%s target=%ld actual=%ld "
+                "error=%ld duty=%u integral=%ld "
+                "fault=%u dir=%s\r\n",
+                App_MotorStateText(state),
+                (long)target_count,
+                (long)actual_average,
+                (long)error_average,
+                (unsigned int)duty_percent,
+                (long)ControlPi_GetIntegral(&controller),
+                (unsigned int)(state == APP_MOTOR_STATE_FAULT),
+                direction_text);
 
-            delta_sum = 0;
-            rpm_sum_x10 = 0;
+            actual_sum = 0L;
+            signed_delta_sum = 0L;
             log_sample_count = 0U;
         }
     }

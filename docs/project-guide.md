@@ -298,7 +298,8 @@
 - 已建立`Control/Inc`、`Control/Src`和`Control/Test`，完成Q8定点PI、输出限幅、积分抗饱和和板端自检。
 - PI自检串口输出`control PI self-test PASSED`，TFT、DHT11、heartbeat和编码器启动回归正常；正式构建已将临时自检开关恢复为`0U`。
 - 已建立PA0到MotorTask的NEXT命令队列，DefaultTask不再初始化电机或直接修改PWM；队列在任务创建前完成初始化。
-- 当前MotorTask仍只执行M5编码器测速，尚未消费命令或实现闭环状态机、软启动和编码器故障锁存；该中间版本只完成构建，未进行硬件运行测试。
+- MotorTask已实现STOP、低/高档软启动、相对计数PI闭环和编码器无反馈FAULT锁存，并成为唯一修改PWM的任务。
+- 当前闭环状态机构建通过但尚未烧录；下一步先隔离电机输出，验证上电STOP、500ms无反馈故障和人工清除不自动重启。
 
 ## 设计依据
 

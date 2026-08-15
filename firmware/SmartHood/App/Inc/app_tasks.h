@@ -34,10 +34,10 @@ void App_DefaultTask(void *argument);
 void App_SensorTask(void *argument);
 
 /**
- * @brief 电机测速任务：每50 ms读取编码器并周期输出方向和RPM。
+ * @brief 电机控制任务：每50ms读取编码器并执行软启动、PI和故障停机。
  * @param argument FreeRTOS任务参数，本项目未使用。
  *
- * M5阶段该任务只读取编码器，不修改TIM4 PWM、TB6612方向或待机状态。
+ * 该任务是唯一允许初始化TB6612、修改PWM和改变电机状态的任务。
  */
 void App_MotorTask(void *argument);
 

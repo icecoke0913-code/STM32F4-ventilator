@@ -627,7 +627,7 @@ git commit -m "refactor: route motor commands to MotorTask"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/App/Inc/app_tasks.h`
 
-- [ ] **Step 1: 定义控制常量和状态**
+- [x] **Step 1: 定义控制常量和状态**
 
 用以下定义替换 M5 的 RPM 日志常量：
 
@@ -660,7 +660,7 @@ typedef enum
 } App_MotorState_t;
 ```
 
-- [ ] **Step 2: 增加状态文本和目标选择辅助函数**
+- [x] **Step 2: 增加状态文本和目标选择辅助函数**
 
 ```c
 static const char *App_MotorStateText(App_MotorState_t state)
@@ -701,7 +701,7 @@ static int32_t App_MotorTargetCount(App_MotorState_t state)
 }
 ```
 
-- [ ] **Step 3: 用闭环实现替换 App_MotorTask**
+- [x] **Step 3: 用闭环实现替换 App_MotorTask**
 
 完整替换原`App_MotorTask()`：
 
@@ -935,7 +935,7 @@ void App_MotorTask(void *argument)
 }
 ```
 
-- [ ] **Step 4: 更新任务注释**
+- [x] **Step 4: 更新任务注释**
 
 将`app_tasks.h`和`app_tasks.c`中的 M5“只测速、不修改 PWM”注释改为：
 
@@ -946,11 +946,11 @@ void App_MotorTask(void *argument)
  */
 ```
 
-- [ ] **Step 5: Rebuild**
+- [x] **Step 5: Rebuild**
 
 Expected: `0 Error(s), 0 Warning(s)`；`app_tasks.c`、`control_pi.c`和`control_pi_selftest.c`均参与编译。
 
-- [ ] **Step 6: 提交闭环状态机**
+- [x] **Step 6: 提交闭环状态机**
 
 ```powershell
 git add firmware/SmartHood/App

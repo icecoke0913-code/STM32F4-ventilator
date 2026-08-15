@@ -347,3 +347,15 @@
 - 静态检查确认DefaultTask不存在`BSP_Motor_*`引用；后续只有`App_MotorTask()`可以拥有电机状态并修改PWM。
 - Rebuild结果：Code=26622、RO-data=1334、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒。
 - 此检查点的MotorTask仍保持M5编码器测速实现，尚未消费NEXT命令；因此未烧录，也未进行PA0或电机硬件运行测试。
+
+### 2026-08-15：M6闭环状态机集成构建
+
+- MotorTask成为唯一允许初始化TB6612、修改PWM和改变电机状态的任务；DefaultTask继续只发送NEXT命令。
+- 状态机包含`STOP`、`LOW_START`、`LOW_PI`、`HIGH_START`、`HIGH_PI`和锁存`FAULT`，PA0按STOP、低档、高档、STOP顺序切换。
+- 低档目标为130 counts/50ms、前馈50%；高档目标为195 counts/50ms、前馈70%；PI初始参数为Kp=64/256、Ki=4/256。
+- 两个挡位均先以30% PWM软启动300ms，再进入PI；控制输出限制为30%至90%。
+- PI状态连续10个50ms周期没有超过1 count的有效反馈时调用`BSP_Motor_Stop()`，归零PWM、拉低STBY并锁存`ENCODER_TIMEOUT`故障。
+- FAULT状态第一次PA0只清除故障并保持STOP，第二次PA0才允许重新进入低档软启动；不实现自动重试。
+- 每约500ms输出状态、目标计数、平均实际计数、误差、PWM、积分、故障和方向日志，不再把相对计数描述为精确RPM。
+- Rebuild结果：Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒。
+- 本检查点只完成软件集成构建，尚未烧录或执行无电机故障锁存、低档闭环、高档阶跃和编码器断线测试。
