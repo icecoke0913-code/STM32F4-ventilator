@@ -316,6 +316,8 @@
 - 详细设计见`docs/superpowers/specs/2026-08-16-m7-single-key-mode-manager-design.md`；下一步由用户复核书面设计，再编写逐步实施计划。
 - M7实现分支为`codex/feature-m7-key-mode`；开始实现前完整Rebuild为Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。
 - M7基线HEX SHA-256为`F85F226CE1B5F8F3FEBE85360801217742E2ED39B3CA8E6A53313A6F0016CA55`，与M6最终固件一致。
+- 按键识别模块已实现并通过板端确定性自检，覆盖消抖、单双击、长按、上电按住保护和Tick回绕。
+- 模式管理器公共接口和完整转换表自检已建立；首次Rebuild只缺少四个`ModeManager_*`生产实现，形成预期TDD红灯。当前固件不可烧录，下一步实现最小状态机并取得绿灯。
 
 ## 设计依据
 

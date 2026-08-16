@@ -410,3 +410,12 @@
 - 截图中串口开始接收位置在`M7`文字前出现少量一次性乱码；后续电机、控制和DHT11日志均完整清晰，当前不记录为持续串口乱码故障。
 - DHT11继续输出`status=OK`，样本为24.8摄氏度、54.0%RH；电机保持停止，M6控制任务未因自检阻塞。
 - 结论：按键状态机确定性自检在板端通过，既有MotorTask和DHT11功能无阻塞回归；本检查点尚未把真实PA0输入切换到新按键模块。
+
+### 2026-08-16：M7模式管理器TDD红灯
+
+- 新增`mode_manager.h`，定义运行许可、AUTO/MANUAL/BACKFLOW模式、手动LOW/HIGH预选、编码器超时故障、事件处理结果和电机请求接口。
+- 新增`mode_manager_selftest.h/.c`，验证上电安全初始状态、待机模式切换、MANUAL双击换挡、长按取得运行许可、BACKFLOW停机、非MANUAL双击忽略、故障优先停机、故障中事件屏蔽及长按清故障复位。
+- `mode_manager_selftest.c`已加入Keil的`Control Test` Group；MotorTask的临时M7自检入口会依次执行按键识别自检和模式转换自检。
+- 未创建`mode_manager.c`时执行完整Rebuild，全部源文件编译成功，链接阶段只报告`ModeManager_Init`、`ModeManager_HandleEvent`、`ModeManager_SetFault`和`ModeManager_GetMotorRequest`四个未定义符号。
+- 构建结果为4 Errors、0 Warnings、Target not created，Build Time 16秒；UV4退出码为2，与预期红灯一致。
+- 结论：模式转换表自检能够约束尚未实现的四个生产接口；当前固件不可烧录，下一步才创建最小`mode_manager.c`取得绿灯。

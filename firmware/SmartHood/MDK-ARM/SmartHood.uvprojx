@@ -455,6 +455,11 @@
               <FileType>1</FileType>
               <FilePath>..\Control\Test\control_pi_selftest.c</FilePath>
             </File>
+            <File>
+              <FileName>mode_manager_selftest.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Control\Test\mode_manager_selftest.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

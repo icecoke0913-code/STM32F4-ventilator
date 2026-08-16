@@ -506,7 +506,7 @@ git commit -m "feat: add M7 key event recognizer"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 创建模式管理公共接口**
+- [x] **Step 1: 创建模式管理公共接口**
 
 创建`Control/Inc/mode_manager.h`：
 
@@ -561,7 +561,7 @@ ModeMotorRequest_t ModeManager_GetMotorRequest(const ModeManager_t *manager);
 #endif /* MODE_MANAGER_H */
 ```
 
-- [ ] **Step 2: 创建完整转换表自检**
+- [x] **Step 2: 创建完整转换表自检**
 
 创建`Control/Test/mode_manager_selftest.c`，完整内容为：
 
@@ -629,7 +629,7 @@ bool ModeManager_RunSelfTests(void);
 #endif /* MODE_MANAGER_SELFTEST_H */
 ```
 
-- [ ] **Step 3: 加入Control Test并临时调用**
+- [x] **Step 3: 加入Control Test并临时调用**
 
 将`mode_manager_selftest.c`加入已有`Control Test` Group。在`app_tasks.c`包含`mode_manager_selftest.h`，并在M7自检块中同时执行两个测试：
 
@@ -643,7 +643,7 @@ if (!BSP_Key_RunSelfTests() || !ModeManager_RunSelfTests())
 DebugLog_Printf("M7 self-test PASSED\r\n");
 ```
 
-- [ ] **Step 4: Rebuild并确认红灯**
+- [x] **Step 4: Rebuild并确认红灯**
 
 Expected: 链接失败，未定义符号只来自：
 
@@ -654,7 +654,7 @@ ModeManager_SetFault
 ModeManager_GetMotorRequest
 ```
 
-- [ ] **Step 5: 提交模式红灯测试**
+- [x] **Step 5: 提交模式红灯测试**
 
 ```powershell
 git add firmware/SmartHood/Control firmware/SmartHood/App/Src/app_tasks.c firmware/SmartHood/MDK-ARM/SmartHood.uvprojx

@@ -16,6 +16,7 @@
 #include "control_pi.h"
 #include "control_pi_selftest.h"
 #include "bsp_key_selftest.h"
+#include "mode_manager_selftest.h"
 
 #include "cmsis_os2.h"
 #include "debug_log.h"
@@ -520,13 +521,13 @@ void App_MotorTask(void *argument)
 
 #if APP_M7_SELF_TEST_ENABLED
     /*
-     * 在初始化电机之前验证按键状态机。
-     * 当前处于TDD红灯阶段，按键函数尚未实现，
-     * 因此首次构建应在链接阶段报告未定义符号。
+     * 在初始化电机之前验证按键识别和模式转换状态机。
+     * 任一自检失败都保持电机停止，并阻止控制任务继续启动。
      */
-    if (!BSP_Key_RunSelfTests())
+    if (!BSP_Key_RunSelfTests() ||
+        !ModeManager_RunSelfTests())
     {
-        DebugLog_Printf("M7 key self-test FAILED\r\n");
+        DebugLog_Printf("M7 self-test FAILED\r\n");
         BSP_Motor_Stop();
 
         for (;;)
@@ -535,7 +536,7 @@ void App_MotorTask(void *argument)
         }
     }
 
-    DebugLog_Printf("M7 key self-test PASSED\r\n");
+    DebugLog_Printf("M7 self-test PASSED\r\n");
 #endif
 
 #if APP_CONTROL_PI_SELF_TEST_ENABLED
