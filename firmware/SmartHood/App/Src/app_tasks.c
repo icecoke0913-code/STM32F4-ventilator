@@ -1,6 +1,6 @@
 /**
  * @file app_tasks.c
- * @brief SmartHood显示自检、心跳按键、电机挡位和DHT11周期任务实现。
+ * @brief SmartHood显示自检、按键事件、电机挡位和DHT11周期任务实现。
  */
 
 #include "app_tasks.h"
@@ -9,6 +9,7 @@
 #include <stdbool.h>
 
 #include "bsp_dht11.h"
+#include "bsp_key.h"
 #include "bsp_motor.h"
 #include "bsp_st7735s.h"
 #include "bsp_encoder.h"
@@ -24,9 +25,6 @@
 
 /** 默认任务快速循环周期，用于可靠识别PA0短按。 */
 #define APP_MAIN_LOOP_PERIOD_MS       20U
-
-/** 原始按键电平保持不变达到此时间后，才更新稳定状态。 */
-#define APP_KEY_DEBOUNCE_MS           40U
 
 /** PA1翻转和心跳日志继续保持原有1秒周期。 */
 #define APP_HEARTBEAT_PERIOD_MS     1000U
@@ -74,7 +72,7 @@
  */
 typedef enum
 {
-    APP_MOTOR_STATE_STOP = 0,  /**< 电机停止，等待NEXT命令。 */
+    APP_MOTOR_STATE_STOP = 0,  /**< 电机停止，等待按键事件。 */
     APP_MOTOR_STATE_LOW_START, /**< 低档30%软启动阶段。 */
     APP_MOTOR_STATE_LOW_PI,    /**< 低档PI闭环阶段。 */
     APP_MOTOR_STATE_HIGH_START,/**< 高档30%软启动阶段。 */
@@ -97,59 +95,46 @@ typedef enum
  */
 #define APP_M7_SELF_TEST_ENABLED 1U
 
-/**
- * @brief 默认任务可以发送给电机任务的控制命令。
- *
- * 当前只有NEXT命令，表示按既定顺序切换到下一个电机状态。
- */
-typedef enum
-{
-    APP_MOTOR_COMMAND_NEXT = 0
-} App_MotorCommand_t;
+/** 按键事件队列最多保存的事件数量。 */
+#define APP_KEY_EVENT_QUEUE_LENGTH 4U
+
+/** 按键事件队列句柄，创建成功前保持为NULL。 */
+static osMessageQueueId_t app_key_event_queue = NULL;
 
 /**
- * @brief 电机命令队列最多保存的命令数量。
- *
- * 正常按键已经经过40ms消抖，长度4足以容纳短时间内的连续操作。
- */
-#define APP_MOTOR_COMMAND_QUEUE_LENGTH 4U
-
-/** 电机控制命令队列句柄，创建成功前保持为NULL。 */
-static osMessageQueueId_t app_motor_command_queue = NULL;
-
-/**
- * @brief 创建默认任务到电机任务之间的命令队列。
+ * @brief 创建默认任务到电机任务之间的按键事件队列。
  *
  * @return 创建成功返回true，否则返回false。
  */
 bool App_MotorControl_Init(void)
 {
-    app_motor_command_queue = osMessageQueueNew(
-        APP_MOTOR_COMMAND_QUEUE_LENGTH,
-        sizeof(App_MotorCommand_t),
+    app_key_event_queue = osMessageQueueNew(
+        APP_KEY_EVENT_QUEUE_LENGTH,
+        sizeof(BSP_KeyEvent_t),
         NULL);
 
-    return app_motor_command_queue != NULL;
+    return app_key_event_queue != NULL;
 }
 
 /**
- * @brief 向电机任务发送一次“切换到下一状态”命令。
+ * @brief 向电机任务发送一个有效按键事件。
  *
  * 使用0超时，队列已满时立即返回，不阻塞默认任务的心跳和按键扫描。
  *
- * @return 命令成功进入队列返回true，否则返回false。
+ * @param event 待发送的按键事件。
+ *
+ * @return 有效事件成功进入队列返回true，否则返回false。
  */
-static bool App_MotorPostNextCommand(void)
+static bool App_PostKeyEvent(BSP_KeyEvent_t event)
 {
-    App_MotorCommand_t command = APP_MOTOR_COMMAND_NEXT;
-
-    if (app_motor_command_queue == NULL)
+    if ((app_key_event_queue == NULL) ||
+        (event == BSP_KEY_EVENT_NONE))
     {
         return false;
     }
 
-    return osMessageQueuePut(app_motor_command_queue,
-                             &command,
+    return osMessageQueuePut(app_key_event_queue,
+                             &event,
                              0U,
                              0U) == osOK;
 }
@@ -318,19 +303,19 @@ static bool App_RunDisplayTest(void)
 }
 
 /**
- * @brief 运行显示自检、心跳，并把PA0有效按下发送给电机任务。
+ * @brief 运行显示自检、心跳，并把PA0按键事件发送给电机任务。
  * @param argument FreeRTOS任务参数，本项目未使用。
  *
- * 快速循环每20ms采样PA0并执行40ms消抖；只有稳定状态从低变高时
- * 才发送一次NEXT命令。PA1和心跳继续使用独立的1秒节拍。
+ * 快速循环每20ms采样PA0并驱动按键状态机，识别出的有效事件通过
+ * 消息队列发送。PA1和心跳继续使用独立的1秒节拍。
  */
 void App_DefaultTask(void *argument)
 {
+    BSP_Key_t key;
     uint32_t heartbeat = 0U;
     uint32_t heartbeat_tick;
-    uint32_t candidate_since_tick;
-    GPIO_PinState candidate_key_state;
-    GPIO_PinState stable_key_state;
+    uint32_t now_tick;
+    bool initial_pressed;
 
     (void)argument;
 
@@ -347,58 +332,30 @@ void App_DefaultTask(void *argument)
         DebugLog_Printf("ST7735S init or draw failed\r\n");
     }
 
-    /*
-     * 以任务开始处理按键时的实际电平作为初始稳定状态。
-     * 如果上电时PA0已经被按住，不会因此触发电机；
-     * 必须先释放按键，再重新按下。
-     */
-    stable_key_state = HAL_GPIO_ReadPin(USER_KEY_GPIO_Port,
-                                        USER_KEY_Pin);
-
-    candidate_key_state = stable_key_state;
-    candidate_since_tick = HAL_GetTick();
-    heartbeat_tick = candidate_since_tick;
+    /* 读取实际初始电平，上电按住时由按键状态机等待稳定释放。 */
+    now_tick = HAL_GetTick();
+    initial_pressed =
+        HAL_GPIO_ReadPin(USER_KEY_GPIO_Port,
+                         USER_KEY_Pin) == GPIO_PIN_SET;
+    BSP_Key_Init(&key, initial_pressed, now_tick);
+    heartbeat_tick = now_tick;
 
     for (;;)
     {
-        GPIO_PinState raw_key_state;
-        uint32_t now_tick;
+        BSP_KeyEvent_t event;
+        bool raw_pressed;
 
         now_tick = HAL_GetTick();
+        raw_pressed =
+            HAL_GPIO_ReadPin(USER_KEY_GPIO_Port,
+                             USER_KEY_Pin) == GPIO_PIN_SET;
+        event = BSP_Key_Process(&key, raw_pressed, now_tick);
 
-        raw_key_state = HAL_GPIO_ReadPin(USER_KEY_GPIO_Port,
-                                        USER_KEY_Pin);
-
-        if (raw_key_state != candidate_key_state)
+        /* 队列发送失败时记录日志，但不阻塞心跳和其他任务。 */
+        if ((event != BSP_KEY_EVENT_NONE) &&
+            !App_PostKeyEvent(event))
         {
-            /*
-             * 原始电平发生变化时，只记录新的候选状态，
-             * 并重新开始40ms消抖计时。
-             */
-            candidate_key_state = raw_key_state;
-            candidate_since_tick = now_tick;
-        }
-        else if ((candidate_key_state != stable_key_state) &&
-                 ((uint32_t)(now_tick - candidate_since_tick) >=
-                  APP_KEY_DEBOUNCE_MS))
-        {
-            /*
-             * 候选电平连续保持40ms，确认它是稳定状态，
-             * 而不是机械按键触点抖动。
-             */
-            stable_key_state = candidate_key_state;
-
-            if (stable_key_state == GPIO_PIN_SET)
-            {
-                /*
-                 * 默认任务不再直接修改PWM，只向电机任务发送NEXT命令。
-                 * 队列发送失败时记录日志，但不阻塞心跳和其他任务。
-                 */
-                if (!App_MotorPostNextCommand())
-                {
-                    DebugLog_Printf("motor command queue full\r\n");
-                }
-            }
+            DebugLog_Printf("key event queue full\r\n");
         }
 
         if ((uint32_t)(now_tick - heartbeat_tick) >=
@@ -416,7 +373,7 @@ void App_DefaultTask(void *argument)
             DebugLog_Printf(
                 "heartbeat=%lu key=%u tick=%lu\r\n",
                 (unsigned long)heartbeat,
-                (unsigned int)stable_key_state,
+                (unsigned int)BSP_Key_IsPressed(&key),
                 (unsigned long)now_tick);
 
             heartbeat++;
@@ -503,7 +460,7 @@ void App_SensorTask(void *argument)
  * @param argument FreeRTOS任务参数，本项目未使用。
  *
  * MotorTask是唯一允许初始化TB6612、修改PWM和改变电机状态的任务。
- * PA0所在的DefaultTask只通过消息队列发送NEXT命令。
+ * PA0所在的DefaultTask只通过消息队列发送按键事件。
  */
 void App_MotorTask(void *argument)
 {
@@ -590,7 +547,7 @@ void App_MotorTask(void *argument)
         }
     }
 
-    /* 所有初始化完成后仍强制保持STOP，等待PA0命令。 */
+    /* 所有初始化完成后仍强制保持STOP，等待PA0按键事件。 */
     BSP_Motor_Stop();
     DebugLog_Printf("motor control ready, state=STOP\r\n");
 
@@ -599,7 +556,7 @@ void App_MotorTask(void *argument)
 
     for (;;)
     {
-        App_MotorCommand_t command;
+        BSP_KeyEvent_t event;
         Encoder_Direction_t direction;
         int16_t delta;
         int32_t delta_32;
@@ -613,12 +570,15 @@ void App_MotorTask(void *argument)
         (void)osDelayUntil(sample_tick);
         now_tick = osKernelGetTickCount();
 
-        /* 每个周期最多处理一个NEXT命令，且不阻塞闭环计算。 */
-        if (osMessageQueueGet(app_motor_command_queue,
-                              &command,
+        /* 每个周期最多处理一个按键事件，且不阻塞闭环计算。 */
+        if (osMessageQueueGet(app_key_event_queue,
+                              &event,
                               NULL,
                               0U) == osOK)
         {
+            /* Task 7接入模式管理器前，任一有效事件仍沿用M6单步切换。 */
+            (void)event;
+
             if (state == APP_MOTOR_STATE_FAULT)
             {
                 /* FAULT第一次按键只清除故障，不自动重新启动。 */

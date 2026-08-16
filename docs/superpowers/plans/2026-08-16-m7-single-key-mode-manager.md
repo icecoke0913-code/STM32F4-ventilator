@@ -794,7 +794,7 @@ git commit -m "feat: add M7 mode manager"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/Core/Src/freertos.c`
 
-- [ ] **Step 1: 将队列元素改为BSP_KeyEvent_t**
+- [x] **Step 1: 将队列元素改为BSP_KeyEvent_t**
 
 删除`App_MotorCommand_t`和`APP_MOTOR_COMMAND_NEXT`。保留长度4，把句柄改名为：
 
@@ -813,7 +813,7 @@ app_key_event_queue = osMessageQueueNew(
 return app_key_event_queue != NULL;
 ```
 
-- [ ] **Step 2: 用事件发送函数替换NEXT发送函数**
+- [x] **Step 2: 用事件发送函数替换NEXT发送函数**
 
 ```c
 static bool App_PostKeyEvent(BSP_KeyEvent_t event)
@@ -827,7 +827,7 @@ static bool App_PostKeyEvent(BSP_KeyEvent_t event)
 }
 ```
 
-- [ ] **Step 3: 用BSP_Key替换DefaultTask内手写消抖**
+- [x] **Step 3: 用BSP_Key替换DefaultTask内手写消抖**
 
 删除`candidate_since_tick`、`candidate_key_state`和`stable_key_state`。显示自检后初始化：
 
@@ -862,7 +862,7 @@ if ((event != BSP_KEY_EVENT_NONE) && !App_PostKeyEvent(event))
 (unsigned int)BSP_Key_IsPressed(&key)
 ```
 
-- [ ] **Step 4: 更新中文注释并静态检查所有权**
+- [x] **Step 4: 更新中文注释并静态检查所有权**
 
 Run:
 
@@ -873,7 +873,7 @@ rg -n "BSP_Motor_" firmware/SmartHood/App/Src/app_tasks.c
 
 Expected: 第一条无匹配；第二条的电机调用只位于MotorTask及其静态辅助函数，不在DefaultTask。
 
-- [ ] **Step 5: Rebuild并提交队列迁移**
+- [x] **Step 5: Rebuild并提交队列迁移**
 
 Expected: `0 Error(s), 0 Warning(s)`。
 

@@ -431,3 +431,12 @@
 - 自检通过后控制日志持续显示`state=STOP`、`target=0`、`actual=0`、`error=0`、`duty=0`、`integral=0`、`fault=0`和`dir=stopped`，未出现电机输出请求或故障锁存。
 - 截图中`SmartHood M1 start`晚于MotorTask启动日志出现，属于FreeRTOS任务并发调度造成的日志先后顺序，不影响自检和安全停止结论。
 - 结论：模式管理纯状态机的扩展自检已在板端通过，既有MotorTask在VM隔离条件下保持STOP；Task 5完成。当前真实PA0事件仍未迁移到新队列，留给Task 6。
+
+### 2026-08-16：M7按键事件队列迁移构建
+
+- `app_tasks.c`已直接包含`bsp_key.h`；长度为4的消息队列元素改为`BSP_KeyEvent_t`，NONE事件和未创建队列均拒绝发送，其余事件使用0超时入队。
+- DefaultTask删除原有40ms手写消抖状态，显示自检后读取PA0初始电平并初始化`BSP_Key_t`，之后每20ms调用`BSP_Key_Process()`；有效事件入队失败时输出`key event queue full`。
+- 心跳日志通过`BSP_Key_IsPressed()`读取稳定按键状态；静态检查确认旧命令、旧发送函数和旧候选/稳定状态符号均无匹配，DefaultTask内没有`BSP_Motor_*`调用。
+- MotorTask的队列接收局部变量同步为`BSP_KeyEvent_t`，本检查点暂时让每个有效事件沿用M6单步状态切换；尚未接入ModeManager，也未执行Task 7的旧状态转换删除。
+- 最终完整Keil Rebuild结果：Code=30182、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 26秒，UV4退出码为0。
+- 本检查点未烧录、未操作硬件、未执行硬件运行测试；Task 6完成。该中间固件不得烧录，下一步必须由Task 7接入ModeManager并删除旧M6单步切换。

@@ -319,6 +319,8 @@
 - 按键识别模块已实现并通过板端确定性自检，覆盖消抖、单双击、长按、上电按住保护和Tick回绕。
 - 模式管理器已实现并通过完整转换表自检，最终Rebuild为Code=30178、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。
 - VM断开时板端输出`M7 self-test PASSED`和`motor control ready, state=STOP`，后续控制日志持续为零输出、无故障；下一步进入Task 6，把真实PA0输入迁移为按键事件生产者。
+- Task 6已把PA0输入迁移到`BSP_Key`识别器和`BSP_KeyEvent_t`消息队列，DefaultTask不再维护重复消抖状态；最终Rebuild为Code=30182、0 Error(s)、0 Warning(s)。
+- Task 6只是不可烧录的中间构建，MotorTask尚未根据SHORT/DOUBLE/LONG区分行为；下一步必须直接执行Task 7，把事件交给ModeManager并删除旧M6单步切换。
 
 ## 设计依据
 
