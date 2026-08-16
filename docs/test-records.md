@@ -419,3 +419,15 @@
 - 未创建`mode_manager.c`时执行完整Rebuild，全部源文件编译成功，链接阶段只报告`ModeManager_Init`、`ModeManager_HandleEvent`、`ModeManager_SetFault`和`ModeManager_GetMotorRequest`四个未定义符号。
 - 构建结果为4 Errors、0 Warnings、Target not created，Build Time 16秒；UV4退出码为2，与预期红灯一致。
 - 结论：模式转换表自检能够约束尚未实现的四个生产接口；当前固件不可烧录，下一步才创建最小`mode_manager.c`取得绿灯。
+
+### 2026-08-16：M7模式管理器构建绿灯
+
+- 新增`mode_manager.c`，实现安全初始状态、故障优先事件屏蔽和长按清除、运行许可切换、三模式短按循环、MANUAL双击换挡及电机请求映射。
+- `mode_manager.c`已加入Keil的`Control` Group，并与`mode_manager_selftest.c`、`bsp_key_selftest.c`共同参与完整Rebuild。
+- 模式管理自检进一步覆盖NULL安全、NONE事件状态不变、MANUAL高低挡往返、RUNNING返回STANDBY、BACKFLOW返回AUTO、RUNNING加AUTO保持STOP，以及AUTO和BACKFLOW拒绝双击。
+- 新增独立的STANDBY/MANUAL、STANDBY/BACKFLOW和RUNNING/AUTO短按转换组合，并验证API清故障完整安全复位、非法运行状态/模式/挡位安全停机，以及故障中SHORT和DOUBLE不改变完整状态快照；原有故障锁存和长按清除检查继续保留。
+- 扩展自检后的最终Rebuild结果为Code=30178、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 15秒；UV4退出码为0。
+- 在TB6612 VM保持断开时烧录并按RST重新启动，串口明确输出`M7 self-test PASSED`和`motor control ready, state=STOP`。
+- 自检通过后控制日志持续显示`state=STOP`、`target=0`、`actual=0`、`error=0`、`duty=0`、`integral=0`、`fault=0`和`dir=stopped`，未出现电机输出请求或故障锁存。
+- 截图中`SmartHood M1 start`晚于MotorTask启动日志出现，属于FreeRTOS任务并发调度造成的日志先后顺序，不影响自检和安全停止结论。
+- 结论：模式管理纯状态机的扩展自检已在板端通过，既有MotorTask在VM隔离条件下保持STOP；Task 5完成。当前真实PA0事件仍未迁移到新队列，留给Task 6。

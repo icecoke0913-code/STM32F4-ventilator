@@ -445,6 +445,11 @@
               <FileType>1</FileType>
               <FilePath>..\Control\Src\control_pi.c</FilePath>
             </File>
+            <File>
+              <FileName>mode_manager.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Control\Src\mode_manager.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>

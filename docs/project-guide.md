@@ -317,7 +317,8 @@
 - M7实现分支为`codex/feature-m7-key-mode`；开始实现前完整Rebuild为Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。
 - M7基线HEX SHA-256为`F85F226CE1B5F8F3FEBE85360801217742E2ED39B3CA8E6A53313A6F0016CA55`，与M6最终固件一致。
 - 按键识别模块已实现并通过板端确定性自检，覆盖消抖、单双击、长按、上电按住保护和Tick回绕。
-- 模式管理器公共接口和完整转换表自检已建立；首次Rebuild只缺少四个`ModeManager_*`生产实现，形成预期TDD红灯。当前固件不可烧录，下一步实现最小状态机并取得绿灯。
+- 模式管理器已实现并通过完整转换表自检，最终Rebuild为Code=30178、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。
+- VM断开时板端输出`M7 self-test PASSED`和`motor control ready, state=STOP`，后续控制日志持续为零输出、无故障；下一步进入Task 6，把真实PA0输入迁移为按键事件生产者。
 
 ## 设计依据
 

@@ -665,10 +665,12 @@ git commit -m "test: add M7 mode manager self-test"
 
 **Files:**
 - Create: `firmware/SmartHood/Control/Src/mode_manager.c`
+- Modify: `firmware/SmartHood/Control/Inc/mode_manager.h`
+- Modify: `firmware/SmartHood/Control/Test/mode_manager_selftest.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 - Modify: `docs/test-records.md`
 
-- [ ] **Step 1: 实现纯模式状态机**
+- [x] **Step 1: 实现纯模式状态机**
 
 创建`Control/Src/mode_manager.c`：
 
@@ -738,7 +740,16 @@ ModeResult_t ModeManager_HandleEvent(ModeManager_t *manager,
 
 void ModeManager_SetFault(ModeManager_t *manager, ModeFault_t fault)
 {
-    if (manager != NULL) manager->fault = fault;
+    /* 空上下文不处理；清故障时完整恢复安全初始状态。 */
+    if (manager == NULL) return;
+    if (fault == MODE_FAULT_NONE)
+    {
+        ModeManager_Init(manager);
+        return;
+    }
+
+    /* 非NONE故障直接锁存，电机请求将优先映射为FAULT。 */
+    manager->fault = fault;
 }
 
 ModeMotorRequest_t ModeManager_GetMotorRequest(const ModeManager_t *manager)
@@ -747,20 +758,29 @@ ModeMotorRequest_t ModeManager_GetMotorRequest(const ModeManager_t *manager)
     if (manager->fault != MODE_FAULT_NONE) return MODE_MOTOR_FAULT;
     if ((manager->run_state != MODE_RUN_RUNNING) ||
         (manager->mode != MODE_MANUAL)) return MODE_MOTOR_STOP;
-    return (manager->manual_level == MODE_MANUAL_HIGH) ?
-        MODE_MOTOR_HIGH : MODE_MOTOR_LOW;
+
+    /* 仅认可显式LOW和HIGH，非法挡位必须安全停止。 */
+    if (manager->manual_level == MODE_MANUAL_HIGH)
+        return MODE_MOTOR_HIGH;
+    if (manager->manual_level == MODE_MANUAL_LOW)
+        return MODE_MOTOR_LOW;
+    return MODE_MOTOR_STOP;
 }
 ```
 
-- [ ] **Step 2: 加入Control Group并Rebuild**
+当前`mode_manager_selftest.c`还覆盖NULL安全、NONE事件状态不变、
+API清故障完整安全复位、非法运行状态/模式/挡位安全停机、
+故障中事件不改变完整状态快照，以及独立和连续的完整转换组合。
+
+- [x] **Step 2: 加入Control Group并Rebuild**
 
 Expected: `mode_manager.c`和两个M7自检源文件参与编译；`0 Error(s), 0 Warning(s)`。
 
-- [ ] **Step 3: VM断开时烧录绿灯固件**
+- [x] **Step 3: VM断开时烧录绿灯固件**
 
 Expected串口：`M7 self-test PASSED`，其余M6回归功能继续运行。
 
-- [ ] **Step 4: 记录并提交模式绿灯**
+- [x] **Step 4: 记录并提交模式绿灯**
 
 ```powershell
 git add firmware/SmartHood/Control firmware/SmartHood/MDK-ARM/SmartHood.uvprojx docs/test-records.md

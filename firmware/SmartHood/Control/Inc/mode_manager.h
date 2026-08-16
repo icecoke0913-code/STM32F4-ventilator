@@ -99,7 +99,8 @@ ModeResult_t ModeManager_HandleEvent(ModeManager_t *manager,
 /**
  * @brief 设置或清除模式管理器故障。
  * @param manager 模式管理器上下文。
- * @param fault 新的故障状态。
+ * @param fault 新的故障状态；传入NONE会完整恢复为
+ *              STANDBY、AUTO、LOW预选和无故障。
  */
 void ModeManager_SetFault(ModeManager_t *manager,
                           ModeFault_t fault);
@@ -107,7 +108,7 @@ void ModeManager_SetFault(ModeManager_t *manager,
 /**
  * @brief 把运行许可、模式、挡位和故障映射为电机请求。
  * @param manager 模式管理器上下文。
- * @return STOP、LOW、HIGH或FAULT请求。
+ * @return STOP、LOW、HIGH或FAULT请求；非法状态安全返回STOP。
  */
 ModeMotorRequest_t ModeManager_GetMotorRequest(
     const ModeManager_t *manager);
