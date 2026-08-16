@@ -99,7 +99,7 @@ git commit -m "docs: start M7 key and mode implementation"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 
-- [ ] **Step 1: 建立BSP Test目录和Keil分组**
+- [x] **Step 1: 建立BSP Test目录和Keil分组**
 
 创建物理目录`firmware/SmartHood/BSP/Test`。在Keil中新增`BSP Test` Group；Include Paths增加：
 
@@ -109,7 +109,7 @@ git commit -m "docs: start M7 key and mode implementation"
 
 保留已有`..\BSP\Inc`、`..\Control\Inc`和`..\Control\Test`。
 
-- [ ] **Step 2: 创建按键公共接口**
+- [x] **Step 2: 创建按键公共接口**
 
 创建`BSP/Inc/bsp_key.h`：
 
@@ -164,7 +164,7 @@ bool BSP_Key_IsPressed(const BSP_Key_t *key);
 #endif /* BSP_KEY_H */
 ```
 
-- [ ] **Step 3: 创建自检接口**
+- [x] **Step 3: 创建自检接口**
 
 创建`BSP/Test/bsp_key_selftest.h`：
 
@@ -184,7 +184,7 @@ bool BSP_Key_RunSelfTests(void);
 #endif /* BSP_KEY_SELFTEST_H */
 ```
 
-- [ ] **Step 4: 写固定时间序列自检**
+- [x] **Step 4: 写固定时间序列自检**
 
 创建`BSP/Test/bsp_key_selftest.c`。测试必须分别初始化上下文，覆盖以下断言：
 
@@ -288,7 +288,7 @@ bool BSP_Key_RunSelfTests(void)
 }
 ```
 
-- [ ] **Step 5: 临时调用自检并加入Keil工程**
+- [x] **Step 5: 临时调用自检并加入Keil工程**
 
 将`bsp_key_selftest.c`加入`BSP Test` Group；Include Paths已有`..\BSP\Inc;..\BSP\Test`。在`app_tasks.c`包含`bsp_key_selftest.h`，新增：
 
@@ -310,7 +310,7 @@ bool BSP_Key_RunSelfTests(void)
 #endif
 ```
 
-- [ ] **Step 6: Rebuild并确认红灯**
+- [x] **Step 6: Rebuild并确认红灯**
 
 Expected: 链接失败，未定义符号只来自尚未实现的：
 
@@ -322,7 +322,7 @@ BSP_Key_IsPressed
 
 记录错误数量和符号；此时不能提交“通过”。
 
-- [ ] **Step 7: 提交红灯测试**
+- [x] **Step 7: 提交红灯测试**
 
 ```powershell
 git add firmware/SmartHood/BSP firmware/SmartHood/App/Src/app_tasks.c firmware/SmartHood/MDK-ARM/SmartHood.uvprojx

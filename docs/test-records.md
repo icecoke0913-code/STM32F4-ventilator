@@ -392,3 +392,12 @@
 - M6最终Rebuild包含`control_pi.c`、`control_pi_selftest.c`和`app_tasks.c`，结果为Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 17秒。
 - 最终HEX SHA-256为`F85F226CE1B5F8F3FEBE85360801217742E2ED39B3CA8E6A53313A6F0016CA55`。
 - 范围检查确认未实现自动模式、MQ-2融合、软件反转、LVGL或未经测试的堵转保护；这些功能继续留在后续阶段。
+
+### 2026-08-16：M7按键状态机TDD红灯
+
+- 新增`bsp_key.h`，定义40ms消抖、350ms双击窗口、1000ms长按阈值、按键上下文和`NONE/SHORT/DOUBLE/LONG`事件。
+- 新增`bsp_key_selftest.h/.c`，使用固定电平和毫秒Tick覆盖抖动、单击延迟确认、双击仲裁、长按一次性、上电按住保护和32位Tick回绕。
+- Keil新增`BSP Test` Group和`..\BSP\Test`包含路径；临时打开`APP_M7_SELF_TEST_ENABLED`并在MotorTask初始化电机前调用自检。
+- 未创建`bsp_key.c`时执行Rebuild，链接阶段只报告`BSP_Key_Init`、`BSP_Key_IsPressed`和`BSP_Key_Process`三个未定义符号。
+- 构建结果为3 Errors、3 Warnings、Target not created；Warnings均为链接失败后无法列出镜像符号或加载地址，不是额外源码问题。
+- 结论：红灯失败原因与缺失的按键生产实现完全一致，自检已证明会约束下一步实现；当前固件不可烧录。

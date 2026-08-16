@@ -15,6 +15,7 @@
 
 #include "control_pi.h"
 #include "control_pi_selftest.h"
+#include "bsp_key_selftest.h"
 
 #include "cmsis_os2.h"
 #include "debug_log.h"
@@ -86,6 +87,14 @@ typedef enum
  * 设置为1时运行自检；完成初次验证后将改为0。
  */
 #define APP_CONTROL_PI_SELF_TEST_ENABLED 0U
+
+/**
+ * @brief M7按键状态机临时板端自检开关。
+ *
+ * 设置为1时执行固定时间序列自检；
+ * 验收完成后必须恢复为0，避免正式启动时重复运行。
+ */
+#define APP_M7_SELF_TEST_ENABLED 1U
 
 /**
  * @brief 默认任务可以发送给电机任务的控制命令。
@@ -508,6 +517,26 @@ void App_MotorTask(void *argument)
     uint8_t duty_percent = 0U;
 
     (void)argument;
+
+#if APP_M7_SELF_TEST_ENABLED
+    /*
+     * 在初始化电机之前验证按键状态机。
+     * 当前处于TDD红灯阶段，按键函数尚未实现，
+     * 因此首次构建应在链接阶段报告未定义符号。
+     */
+    if (!BSP_Key_RunSelfTests())
+    {
+        DebugLog_Printf("M7 key self-test FAILED\r\n");
+        BSP_Motor_Stop();
+
+        for (;;)
+        {
+            osDelay(1000U);
+        }
+    }
+
+    DebugLog_Printf("M7 key self-test PASSED\r\n");
+#endif
 
 #if APP_CONTROL_PI_SELF_TEST_ENABLED
     /* 临时自检开关为1时，电机初始化前先验证PI纯算法。 */
