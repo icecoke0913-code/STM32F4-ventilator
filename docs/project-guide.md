@@ -314,6 +314,8 @@
 - 编码器故障中短按和双击无效；长按清故障并重置为STANDBY + AUTO + LOW，防止清除后立即重新启动。
 - 设计包含按键时间序列自检、模式转换表自检、无VM故障交互验收和接通VM空载验收；不主动执行编码器运行中断线测试。
 - 详细设计见`docs/superpowers/specs/2026-08-16-m7-single-key-mode-manager-design.md`；下一步由用户复核书面设计，再编写逐步实施计划。
+- M7实现分支为`codex/feature-m7-key-mode`；开始实现前完整Rebuild为Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。
+- M7基线HEX SHA-256为`F85F226CE1B5F8F3FEBE85360801217742E2ED39B3CA8E6A53313A6F0016CA55`，与M6最终固件一致。
 
 ## 设计依据
 

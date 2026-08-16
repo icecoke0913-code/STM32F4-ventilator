@@ -39,7 +39,7 @@ CubeMX外设配置不变，不新增任务、定时器、中断、DMA或GPIO。P
 - Verify: `firmware/SmartHood/MDK-ARM/SmartHood/SmartHood.hex`
 - Modify: `docs/project-guide.md`
 
-- [ ] **Step 1: 检查分支和工作区**
+- [x] **Step 1: 检查分支和工作区**
 
 Run:
 
@@ -50,7 +50,7 @@ git log -3 --oneline
 
 Expected: 当前分支为`codex/feature-m7-key-mode`，设计提交`5db80b9`存在，工作区无未提交固件修改。
 
-- [ ] **Step 2: Rebuild M6基线**
+- [x] **Step 2: Rebuild M6基线**
 
 在Keil执行`Rebuild`，或由助手使用隐藏窗口运行UV4：
 
@@ -65,7 +65,7 @@ Get-Content $log
 
 Expected: `0 Error(s), 0 Warning(s)`，程序尺寸为`Code=28042、RO-data=1422、RW-data=168、ZI-data=39672`。
 
-- [ ] **Step 3: 校验基线HEX**
+- [x] **Step 3: 校验基线HEX**
 
 Run:
 
@@ -81,7 +81,7 @@ Expected:
 F85F226CE1B5F8F3FEBE85360801217742E2ED39B3CA8E6A53313A6F0016CA55
 ```
 
-- [ ] **Step 4: 记录并提交基线**
+- [x] **Step 4: 记录并提交基线**
 
 在`docs/project-guide.md`的M7记录中追加基线构建和HEX。
 
