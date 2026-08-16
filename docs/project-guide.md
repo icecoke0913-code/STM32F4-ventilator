@@ -300,7 +300,10 @@
 - 已建立PA0到MotorTask的NEXT命令队列，DefaultTask不再初始化电机或直接修改PWM；队列在任务创建前完成初始化。
 - MotorTask已实现STOP、低/高档软启动、相对计数PI闭环和编码器无反馈FAULT锁存，并成为唯一修改PWM的任务。
 - VM隔离测试已验证上电STOP、无反馈ENCODER_TIMEOUT、FAULT持续锁存、第一次PA0清故障保持STOP及第二次PA0才重新启动。
-- 下一步断电恢复VM和电机接线，执行低档空载闭环观察；仍禁止扇叶、机械负载、堵转和长时间温升测试。
+- 低档空载闭环保持Kp=64/256、Ki=4/256，目标130 counts/50ms；样本actual为129至130、duty为48%至49%，运行约10秒稳定，无需调参。
+- 高档空载运行由用户确认无异常，但未提供actual和duty数值截图，因此不记录精确高档计数验收结论。
+- PA0停止与RST停止均通过；用户明确跳过C1/C2实际断线测试。仍禁止扇叶、机械负载、堵转和长时间温升测试。
+- M6最终Rebuild为Code=28042、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，HEX SHA-256为`F85F226CE1B5F8F3FEBE85360801217742E2ED39B3CA8E6A53313A6F0016CA55`。
 
 ## 设计依据
 

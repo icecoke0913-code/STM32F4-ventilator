@@ -1010,15 +1010,15 @@ git commit -m "test: verify M6 no-feedback fault handling"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `docs/test-records.md`
 
-- [ ] **Step 1: 断电恢复电机和编码器接线**
+- [x] **Step 1: 断电恢复电机和编码器接线**
 
 保持原 M5/M4 接线：5V VM、3.3V VCC、共地、PC6=C1、PC7=C2、AO1/AO2接电机。禁止接扇叶或机械负载。
 
-- [ ] **Step 2: 上电确认 STOP**
+- [x] **Step 2: 上电确认 STOP**
 
 观察 3 秒。电机不得自行转动，无异常气味、明显发热或系统重启。
 
-- [ ] **Step 3: 短按进入低档**
+- [x] **Step 3: 短按进入低档**
 
 Expected:
 
@@ -1029,7 +1029,7 @@ LOW target=130 actual=... duty=... fault=0
 
 连续观察 10 秒。验收范围：`actual=117～143`，PWM 不超过 90%，没有持续振荡。
 
-- [ ] **Step 4: 按规则单变量调参**
+- [x] **Step 4: 按规则单变量调参**
 
 仅在需要时调整：
 
@@ -1040,11 +1040,11 @@ LOW target=130 actual=... duty=... fault=0
 
 每次只修改一个参数，Rebuild、烧录并重新观察 10 秒。
 
-- [ ] **Step 5: 验证停止与 RST**
+- [x] **Step 5: 验证停止与 RST**
 
 再按两次 PA0，经过高档启动后进入 STOP；随后重新进入低档并按 RST。两种停止方式均应使电机立即停止。
 
-- [ ] **Step 6: 记录并提交最终低档参数**
+- [x] **Step 6: 记录并提交最终低档参数**
 
 在`docs/test-records.md`记录 Kp、Ki、平均 actual、PWM 范围和现象。
 
@@ -1059,33 +1059,33 @@ git commit -m "test: tune M6 low relative speed target"
 - Modify: `docs/test-records.md`
 - Modify: `docs/project-guide.md`
 
-- [ ] **Step 1: 低档稳定后切换高档**
+- [x] **Step 1: 低档稳定后切换高档**
 
 低档稳定运行 5 秒后短按 PA0。
 
 Expected: 先进入`HIGH_START`，随后进入`HIGH`；`actual`最终保持在`175～215`，PWM 不超过90%，无持续振荡。
 
-- [ ] **Step 2: 验证高档停止**
+- [x] **Step 2: 验证高档停止**
 
 高档稳定后短按 PA0。
 
 Expected: `state=STOP duty=0`，电机停止。
 
-- [ ] **Step 3: 安全验证编码器断线**
+- [x] **Step 3: 安全验证编码器断线（用户选择跳过，未执行）**
 
 断电，断开 C1/C2，重新上电并启动低档。不要在电机运行中拔线。
 
 Expected: 启动阶段后约500 ms进入`ENCODER_TIMEOUT`，PWM归零并锁存 FAULT。
 
-- [ ] **Step 4: 恢复接线并回归**
+- [x] **Step 4: 恢复接线并回归（未断线，无需恢复）**
 
 断电恢复 C1/C2，再上电验证 STOP、低档、高档、停止、心跳、DHT11、TFT 和串口日志。
 
-- [ ] **Step 5: 更新阶段结论**
+- [x] **Step 5: 更新阶段结论**
 
 `docs/test-records.md`记录相对闭环、阶跃、FAULT和未执行项目；`docs/project-guide.md`把 M6 标为“相对闭环功能通过”，同时继续声明未标定 CPR、未做堵转和带负载测试。
 
-- [ ] **Step 6: 提交验收结果**
+- [x] **Step 6: 提交验收结果**
 
 ```powershell
 git add docs/project-guide.md docs/test-records.md
@@ -1099,15 +1099,15 @@ git commit -m "test: validate M6 relative PI control"
 - Verify: `docs/superpowers/specs/2026-08-15-m6-relative-pi-control-design.md`
 - Verify: `docs/superpowers/plans/2026-08-15-m6-relative-pi-control.md`
 
-- [ ] **Step 1: 检查范围边界**
+- [x] **Step 1: 检查范围边界**
 
 确认没有把相对计数写成精确 RPM，没有实现自动模式、MQ-2融合、LVGL、软件反转或未测试的堵转保护。
 
-- [ ] **Step 2: 最终 Rebuild 与 HEX**
+- [x] **Step 2: 最终 Rebuild 与 HEX**
 
 Rebuild。Expected: `0 Error(s), 0 Warning(s)`。记录程序尺寸、构建时间和 SHA-256。
 
-- [ ] **Step 3: 检查差异**
+- [x] **Step 3: 检查差异**
 
 ```powershell
 git diff --check
@@ -1117,7 +1117,7 @@ git log --oneline main..HEAD
 
 Expected: 无空白错误；只包含计划内 Control、App、FreeRTOS、Keil 工程和文档修改。
 
-- [ ] **Step 4: 最终提交**
+- [x] **Step 4: 最终提交**
 
 ```powershell
 git add docs firmware
