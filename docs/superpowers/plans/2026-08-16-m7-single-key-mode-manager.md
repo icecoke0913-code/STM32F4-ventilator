@@ -336,7 +336,7 @@ git commit -m "test: add M7 key event self-test"
 - Modify: `firmware/SmartHood/MDK-ARM/SmartHood.uvprojx`
 - Modify: `docs/test-records.md`
 
-- [ ] **Step 1: 实现非阻塞按键状态机**
+- [x] **Step 1: 实现非阻塞按键状态机**
 
 创建`BSP/Src/bsp_key.c`：
 
@@ -476,11 +476,11 @@ bool BSP_Key_IsPressed(const BSP_Key_t *key)
 }
 ```
 
-- [ ] **Step 2: 将实现加入BSP Group并Rebuild**
+- [x] **Step 2: 将实现加入BSP Group并Rebuild**
 
 Expected: `bsp_key.c`和`bsp_key_selftest.c`均参与编译；`0 Error(s), 0 Warning(s)`。
 
-- [ ] **Step 3: VM保持断开，烧录自检固件**
+- [x] **Step 3: VM保持断开，烧录自检固件**
 
 Expected串口：
 
@@ -490,7 +490,7 @@ M7 key self-test PASSED
 
 电机保持停止，DHT11、heartbeat、PA1和TFT继续工作。
 
-- [ ] **Step 4: 记录并提交按键绿灯**
+- [x] **Step 4: 记录并提交按键绿灯**
 
 ```powershell
 git add firmware/SmartHood/BSP firmware/SmartHood/MDK-ARM/SmartHood.uvprojx docs/test-records.md

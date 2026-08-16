@@ -401,3 +401,12 @@
 - 未创建`bsp_key.c`时执行Rebuild，链接阶段只报告`BSP_Key_Init`、`BSP_Key_IsPressed`和`BSP_Key_Process`三个未定义符号。
 - 构建结果为3 Errors、3 Warnings、Target not created；Warnings均为链接失败后无法列出镜像符号或加载地址，不是额外源码问题。
 - 结论：红灯失败原因与缺失的按键生产实现完全一致，自检已证明会约束下一步实现；当前固件不可烧录。
+
+### 2026-08-16：M7按键状态机绿灯
+
+- 新增`bsp_key.c`，实现无符号Tick时间差、上电按住保护、40ms消抖、350ms单双击仲裁和1000ms一次性长按。
+- `bsp_key.c`与`bsp_key_selftest.c`均参与完整Rebuild，结果为Code=29010、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 14秒。
+- VM断开时烧录自检固件，串口显示`M7 key self-test PASSED`，随后输出`motor control ready, state=STOP`并持续保持控制状态STOP。
+- 截图中串口开始接收位置在`M7`文字前出现少量一次性乱码；后续电机、控制和DHT11日志均完整清晰，当前不记录为持续串口乱码故障。
+- DHT11继续输出`status=OK`，样本为24.8摄氏度、54.0%RH；电机保持停止，M6控制任务未因自检阻塞。
+- 结论：按键状态机确定性自检在板端通过，既有MotorTask和DHT11功能无阻塞回归；本检查点尚未把真实PA0输入切换到新按键模块。
