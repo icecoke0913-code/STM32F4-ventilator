@@ -32,7 +32,7 @@
 | M6-T1 | 190 RPM稳态误差 | 未测试 |
 | M6-T2 | 220 RPM稳态误差 | 未测试 |
 | M6-T3 | 目标阶跃响应和堵转保护 | 未测试 |
-| M7-T1 | 单键短按、双击和长按识别 | 未测试 |
+| M7-T1 | 单键短按、双击和长按识别 | 通过：固定Tick自检及真实PA0交互；含回绕边界 |
 | M8-T1 | 自动模式传感器响应 | 未测试 |
 | M8-T2 | 防回流迟滞避免反复启停 | 未测试 |
 | M9-T1 | 连续运行2小时稳定性 | 未测试 |
@@ -467,3 +467,25 @@
 - 将`App_MotorModeIntegration_RunSelfTests()`函数定义纳入同一`APP_M7_SELF_TEST_ENABLED`条件编译后再次完整Rebuild，结果为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒；生产请求映射函数仍由MotorTask正常使用。
 - 关闭临时自检后的正式HEX SHA-256为`EB81C1253245E82124DA8521D648EFC3183B8CEFEA7628E532ACD5AAB96AC8A4`。
 - 结论：Task 8的VM隔离按键、模式、故障交互、系统回归和正式0警告构建全部通过；本检查点不代表接通VM后的真实电机运行验收。
+
+### 2026-08-17：M7接通VM空载验收与最终构建
+
+- 未安装扇叶或机械负载；在完全断电状态恢复M6已验证的TB6612 VM、电机和编码器接线，先给STM32上电确认`STANDBY + AUTO + LOW`和STOP，再接通原9V电机电源。
+- 接通9V后等待3秒且不操作PA0，电机没有自行转动，未报告异味、明显发热或系统复位，上电安全停止通过。
+- 长按进入RUNNING AUTO时电机继续停止；短按进入MANUAL LOW后先执行30%软启动，再进入LOW PI。截图样本`actual=127~134`、`duty=49~52%`、`fault=0`，空载运行正常。
+- MANUAL模式双击进入HIGH并重新执行30%软启动；用户确认高档转速高于低档、运行正常且未进入FAULT，但本次没有提供高档`actual`和`duty`数值，因此不记录精确高档闭环范围。
+- MANUAL短按进入BACKFLOW后电机正常停止且未重新启动；低档运行中长按进入`STANDBY + MANUAL + LOW`后PWM立即归零，编码器惯性余量从`actual=22`回到0；高档运行时RST也立即停止并恢复`STANDBY + AUTO + LOW`。
+- 系统回归确认DHT11持续`status=OK`、heartbeat递增、PA1约每秒翻转、ST7735S画面正常、USART1无持续乱码；没有观察到异常声音、异味、明显发热或复位。
+- 编码器运行中断线、扇叶、机械负载、堵转和长时间温升测试均未执行，不把这些项目描述为通过。
+- 功能分支最终完整Rebuild结果为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒。
+- 最终HEX SHA-256为`EB81C1253245E82124DA8521D648EFC3183B8CEFEA7628E532ACD5AAB96AC8A4`，与Task 8关闭临时自检后的正式固件一致。
+- 结论：M7单键事件识别、AUTO/MANUAL/BACKFLOW模式、LOW/HIGH预选、运行许可、故障锁存/清除、M6闭环复用和所有已执行空载停止路径通过；未执行项目继续保留为后续限制。
+
+### 2026-08-17：M7最终审查补充自检
+
+- 最终审查发现原双击自检只检查最后的`DOUBLE`事件，不能证明中间过程没有夹带`SHORT`；原Tick回绕自检也只覆盖消抖和长按。
+- `BSP_Key_TestDouble()`现对两次点击的每个中间调用明确断言`BSP_KEY_EVENT_NONE`，只有第二次稳定释放允许返回`BSP_KEY_EVENT_DOUBLE`。
+- Tick回绕自检拆分为LONG、SHORT和DOUBLE三项，分别覆盖跨32位回绕的长按计时、350ms单击等待边界和双击窗口，并继续验证双击过程中不夹带单击。
+- 临时设置`APP_M7_SELF_TEST_ENABLED=1U`后完整Rebuild为Code=30910、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。断开VM烧录并复位，串口明确输出`M7 self-test PASSED`。
+- 板端自检通过后已将`APP_M7_SELF_TEST_ENABLED`恢复为`0U`；正式固件仍保留生产按键映射，不在每次启动时重复运行自检。
+- 恢复正式配置后的完整Rebuild为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)；HEX SHA-256仍为`EB81C1253245E82124DA8521D648EFC3183B8CEFEA7628E532ACD5AAB96AC8A4`。

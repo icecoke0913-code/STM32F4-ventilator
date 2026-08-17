@@ -326,6 +326,10 @@
 - Task 8在VM断开条件下验证了AUTO/MANUAL/BACKFLOW短按循环、MANUAL双击LOW/HIGH往返、长按一次性、无反馈ENCODER_TIMEOUT锁存、故障中事件屏蔽和长按安全清除；所有停止路径均保持PWM为0。
 - Task 8期间heartbeat和DHT11正常，未观察到持续串口乱码或任务阻塞；临时M7自检开关在验收后恢复为`0U`，下一步进入接通VM的空载验收。
 - 关闭临时自检后的正式Rebuild为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)；Task 8无VM验收完成。
+- Task 9在无扇叶、无机械负载条件下完成接通VM空载验收：MANUAL低档和高档运行正常，BACKFLOW、长按STANDBY和RST三条停止路径均通过。
+- 低档截图样本为actual 127至134、duty 49%至52%、fault=0；高档由用户确认运行正常但未提供精确计数截图，因此不记录数值范围。
+- M7最终构建为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，HEX SHA-256为`EB81C1253245E82124DA8521D648EFC3183B8CEFEA7628E532ACD5AAB96AC8A4`。
+- 编码器运行中断线、扇叶、机械负载、堵转和长时间温升仍未执行；M7结论不覆盖这些场景。
 
 ## 设计依据
 

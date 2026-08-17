@@ -55,16 +55,37 @@ static bool BSP_Key_TestDouble(void)
 
     BSP_Key_Init(&key, false, 0U);
 
-    /* 第一次点击：140ms确认按下，240ms确认释放。 */
-    (void)BSP_Key_Process(&key, true, 100U);
-    (void)BSP_Key_Process(&key, true, 140U);
-    (void)BSP_Key_Process(&key, false, 200U);
-    (void)BSP_Key_Process(&key, false, 240U);
+    /* 第一次点击的每一步都不能提前夹带单击事件。 */
+    if (BSP_Key_Process(&key, true, 100U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, true, 140U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 200U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 240U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
 
     /* 第二次按下在350ms窗口内开始，第二次释放时上报双击。 */
-    (void)BSP_Key_Process(&key, true, 400U);
-    (void)BSP_Key_Process(&key, true, 440U);
-    (void)BSP_Key_Process(&key, false, 480U);
+    if (BSP_Key_Process(&key, true, 400U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, true, 440U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 480U) != BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
 
     return BSP_Key_Process(&key, false, 520U) ==
            BSP_KEY_EVENT_DOUBLE;
@@ -134,9 +155,9 @@ static bool BSP_Key_TestStartupHeld(void)
 }
 
 /**
- * @brief 验证32位毫秒Tick回绕不破坏时间差计算。
+ * @brief 验证32位毫秒Tick回绕不破坏长按计时。
  */
-static bool BSP_Key_TestTickWrap(void)
+static bool BSP_Key_TestTickWrapLong(void)
 {
     BSP_Key_t key;
 
@@ -153,6 +174,100 @@ static bool BSP_Key_TestTickWrap(void)
     /* 从稳定按下到0x405正好经过1000ms，应触发长按。 */
     return BSP_Key_Process(&key, true, 0x00000405U) ==
            BSP_KEY_EVENT_LONG;
+}
+
+/**
+ * @brief 验证单击等待窗口跨越32位毫秒Tick回绕时仍准确。
+ */
+static bool BSP_Key_TestTickWrapSingle(void)
+{
+    BSP_Key_t key;
+
+    BSP_Key_Init(&key, false, 0xFFFFFF70U);
+
+    /* 在回绕前完成一次点击，稳定释放时刻为0xFFFFFFE8。 */
+    if (BSP_Key_Process(&key, true, 0xFFFFFF80U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, true, 0xFFFFFFA8U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 0xFFFFFFC0U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 0xFFFFFFE8U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+
+    /* 回绕后经过349ms仍等待，经过350ms才上报一次单击。 */
+    if (BSP_Key_Process(&key, false, 0x00000145U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+
+    return BSP_Key_Process(&key, false, 0x00000146U) ==
+           BSP_KEY_EVENT_SHORT;
+}
+
+/**
+ * @brief 验证双击窗口跨越32位毫秒Tick回绕时不夹带单击。
+ */
+static bool BSP_Key_TestTickWrapDouble(void)
+{
+    BSP_Key_t key;
+
+    BSP_Key_Init(&key, false, 0xFFFFFF70U);
+
+    /* 第一次点击在回绕前完成，所有中间步骤都必须无事件。 */
+    if (BSP_Key_Process(&key, true, 0xFFFFFF80U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, true, 0xFFFFFFA8U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 0xFFFFFFC0U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 0xFFFFFFE8U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+
+    /* 第二次点击在回绕后完成，只有稳定释放时上报双击。 */
+    if (BSP_Key_Process(&key, true, 0x00000080U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, true, 0x000000A8U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+    if (BSP_Key_Process(&key, false, 0x000000C0U) !=
+        BSP_KEY_EVENT_NONE)
+    {
+        return false;
+    }
+
+    return BSP_Key_Process(&key, false, 0x000000E8U) ==
+           BSP_KEY_EVENT_DOUBLE;
 }
 
 /**
@@ -195,5 +310,7 @@ bool BSP_Key_RunSelfTests(void)
            BSP_Key_TestDouble() &&
            BSP_Key_TestLongOnce() &&
            BSP_Key_TestStartupHeld() &&
-           BSP_Key_TestTickWrap();
+           BSP_Key_TestTickWrapLong() &&
+           BSP_Key_TestTickWrapSingle() &&
+           BSP_Key_TestTickWrapDouble();
 }

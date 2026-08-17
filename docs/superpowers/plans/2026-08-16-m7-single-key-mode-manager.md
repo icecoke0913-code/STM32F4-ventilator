@@ -215,13 +215,13 @@ static bool BSP_Key_TestDouble(void)
     BSP_Key_t key;
 
     BSP_Key_Init(&key, false, 0U);
-    (void)BSP_Key_Process(&key, true, 100U);
-    (void)BSP_Key_Process(&key, true, 140U);
-    (void)BSP_Key_Process(&key, false, 200U);
-    (void)BSP_Key_Process(&key, false, 240U);
-    (void)BSP_Key_Process(&key, true, 400U);
-    (void)BSP_Key_Process(&key, true, 440U);
-    (void)BSP_Key_Process(&key, false, 480U);
+    if (BSP_Key_Process(&key, true, 100U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 140U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 200U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 240U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 400U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 440U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 480U) != BSP_KEY_EVENT_NONE) return false;
     return BSP_Key_Process(&key, false, 520U) == BSP_KEY_EVENT_DOUBLE;
 }
 
@@ -254,7 +254,7 @@ static bool BSP_Key_TestStartupHeld(void)
     return BSP_Key_Process(&key, false, 1890U) == BSP_KEY_EVENT_SHORT;
 }
 
-static bool BSP_Key_TestTickWrap(void)
+static bool BSP_Key_TestTickWrapLong(void)
 {
     BSP_Key_t key;
 
@@ -262,6 +262,34 @@ static bool BSP_Key_TestTickWrap(void)
     (void)BSP_Key_Process(&key, true, 0xFFFFFFF5U);
     if (BSP_Key_Process(&key, true, 0x0000001DU) != BSP_KEY_EVENT_NONE) return false;
     return BSP_Key_Process(&key, true, 0x00000405U) == BSP_KEY_EVENT_LONG;
+}
+
+static bool BSP_Key_TestTickWrapSingle(void)
+{
+    BSP_Key_t key;
+
+    BSP_Key_Init(&key, false, 0xFFFFFF70U);
+    if (BSP_Key_Process(&key, true, 0xFFFFFF80U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 0xFFFFFFA8U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 0xFFFFFFC0U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 0xFFFFFFE8U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 0x00000145U) != BSP_KEY_EVENT_NONE) return false;
+    return BSP_Key_Process(&key, false, 0x00000146U) == BSP_KEY_EVENT_SHORT;
+}
+
+static bool BSP_Key_TestTickWrapDouble(void)
+{
+    BSP_Key_t key;
+
+    BSP_Key_Init(&key, false, 0xFFFFFF70U);
+    if (BSP_Key_Process(&key, true, 0xFFFFFF80U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 0xFFFFFFA8U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 0xFFFFFFC0U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 0xFFFFFFE8U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 0x00000080U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, true, 0x000000A8U) != BSP_KEY_EVENT_NONE) return false;
+    if (BSP_Key_Process(&key, false, 0x000000C0U) != BSP_KEY_EVENT_NONE) return false;
+    return BSP_Key_Process(&key, false, 0x000000E8U) == BSP_KEY_EVENT_DOUBLE;
 }
 
 static bool BSP_Key_TestBounce(void)
@@ -284,9 +312,13 @@ bool BSP_Key_RunSelfTests(void)
            BSP_Key_TestDouble() &&
            BSP_Key_TestLongOnce() &&
            BSP_Key_TestStartupHeld() &&
-           BSP_Key_TestTickWrap();
+           BSP_Key_TestTickWrapLong() &&
+           BSP_Key_TestTickWrapSingle() &&
+           BSP_Key_TestTickWrapDouble();
 }
 ```
+
+双击序列的每个中间调用都必须明确返回`NONE`，以证明最终`DOUBLE`之前没有夹带`SHORT`；Tick回绕测试分别覆盖消抖/长按、单击等待窗口和双击窗口。
 
 - [x] **Step 5: 临时调用自检并加入Keil工程**
 
@@ -1115,15 +1147,15 @@ git commit -m "test: verify M7 key and fault interaction"
 - Modify: `docs/test-records.md`
 - Modify: `docs/superpowers/plans/2026-08-16-m7-single-key-mode-manager.md`
 
-- [ ] **Step 1: 完全断电后恢复VM**
+- [x] **Step 1: 完全断电后恢复VM**
 
 禁止安装扇叶或机械负载。确认电机、编码器和TB6612仍使用M6已验证接线；完全断电时恢复VM，然后先给STM32上电确认STANDBY，再接通9V。
 
-- [ ] **Step 2: 验证MANUAL低档和高档**
+- [x] **Step 2: 验证MANUAL低档和高档**
 
 长按进入RUNNING AUTO，短按进入MANUAL。预期低档先30%软启动300ms后进入LOW PI；双击后重新软启动并进入HIGH PI。每次只切换一个挡位。
 
-- [ ] **Step 3: 验证所有停止路径**
+- [x] **Step 3: 验证所有停止路径**
 
 依次验证：
 
@@ -1131,11 +1163,11 @@ git commit -m "test: verify M7 key and fault interaction"
 - RUNNING长按切到STANDBY立即停止。
 - 任意运行状态按RST后恢复`STANDBY AUTO LOW`且不自行启动。
 
-- [ ] **Step 4: 验证系统回归**
+- [x] **Step 4: 验证系统回归**
 
 确认DHT11持续`status=OK`、heartbeat递增、PA1翻转、USART1无乱码、ST7735S保持正常画面。编码器运行中断线测试仍记录为“未执行”。
 
-- [ ] **Step 5: 完整Rebuild并记录HEX**
+- [x] **Step 5: 完整Rebuild并记录HEX**
 
 Expected: `0 Error(s), 0 Warning(s)`。记录Code/RO/RW/ZI和：
 
@@ -1145,7 +1177,7 @@ Get-FileHash `
   -Algorithm SHA256
 ```
 
-- [ ] **Step 6: 更新文档和计划勾选项**
+- [x] **Step 6: 更新文档和计划勾选项**
 
 只把实际执行并观察通过的项目标为通过；跳过的编码器断线、扇叶、负载、堵转和温升测试必须继续标为未执行。
 
