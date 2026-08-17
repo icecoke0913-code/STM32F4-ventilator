@@ -440,3 +440,16 @@
 - MotorTask的队列接收局部变量同步为`BSP_KeyEvent_t`，本检查点暂时让每个有效事件沿用M6单步状态切换；尚未接入ModeManager，也未执行Task 7的旧状态转换删除。
 - 最终完整Keil Rebuild结果：Code=30182、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 26秒，UV4退出码为0。
 - 本检查点未烧录、未操作硬件、未执行硬件运行测试；Task 6完成。该中间固件不得烧录，下一步必须由Task 7接入ModeManager并删除旧M6单步切换。
+
+### 2026-08-17：M7模式请求与电机状态机软件集成
+
+- `app_tasks.c`直接包含`mode_manager.h`；MotorTask在PI和电机初始化前建立ModeManager安全初值，并输出`STANDBY AUTO LOW NONE`初始模式。
+- MotorTask每50ms清空已有按键事件队列，每个事件均交给`ModeManager_HandleEvent()`并记录运行许可、模式、挡位、故障和处理结果；非法枚举统一记录为`INVALID`，不误报有效状态。
+- 新增app内纯映射自检`App_MotorModeIntegration_RunSelfTests()`，覆盖STOP、LOW、HIGH、FAULT及非法请求的内部状态、30%或0%初始占空比和立即停机标志，并接入`APP_M7_SELF_TEST_ENABLED`组合自检。
+- TDD RED阶段只声明并调用`App_MotorRequestToAction()`而不实现；完整Rebuild在链接阶段仅报告`L6218E: Undefined symbol App_MotorRequestToAction (referred from app_tasks.o)`，结果为1 Error(s)、0 Warning(s)、Target not created，Build Time 21秒。
+- GREEN阶段实现单一的安全纯映射，非法请求退化为STOP、0%和立即停机；删除M6旧的顺序切换分支，生产请求变化路径复用该action进入LOW/HIGH的30%软启动，或立即进入STOP/FAULT，不复制第二套请求映射。
+- 请求变化或编码器故障锁存时设置`skip_log_sample`；该周期仍完整执行控制和故障处理，但其编码器delta属于前一50ms状态，不参与平均日志统计。周期末统一清空`actual_sum`、`signed_delta_sum`和`log_sample_count`，新的约500ms窗口从下一完整新状态或FAULT周期开始，不再混入切换周期样本。
+- 编码器连续无反馈触发时先向ModeManager锁存`ENCODER_TIMEOUT`并同步FAULT请求，再保留原有故障停机、PI复位和日志，同时清零无反馈内部计数；故障触发周期的目标计数立即归零，长按清故障后请求保持STOP，不自动启动。
+- 静态检查确认`NEXT`、`APP_MOTOR_COMMAND`和`App_MotorPostNext`在`firmware/SmartHood/App`中均无匹配；原有300ms软启动、PI控制和约500ms平均日志保持。
+- 最终GREEN完整Keil Rebuild包含`app_tasks.c`、`mode_manager.c`、`mode_manager_selftest.c`和`bsp_key_selftest.c`，结果为Code=30646、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 18秒。
+- 本检查点仅完成软件集成和构建验证；既有ModeManager自检未修改，新增app内纯映射自检尚未烧录或执行板端运行；本次未操作硬件或执行硬件验收。Task 7 Step 1至Step 6完成，Step 7提交留给主代理。

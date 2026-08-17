@@ -321,6 +321,8 @@
 - VM断开时板端输出`M7 self-test PASSED`和`motor control ready, state=STOP`，后续控制日志持续为零输出、无故障；下一步进入Task 6，把真实PA0输入迁移为按键事件生产者。
 - Task 6已把PA0输入迁移到`BSP_Key`识别器和`BSP_KeyEvent_t`消息队列，DefaultTask不再维护重复消抖状态；最终Rebuild为Code=30182、0 Error(s)、0 Warning(s)。
 - Task 6只是不可烧录的中间构建，MotorTask尚未根据SHORT/DOUBLE/LONG区分行为；下一步必须直接执行Task 7，把事件交给ModeManager并删除旧M6单步切换。
+- Task 7已把按键事件、ModeManager请求和M6软启动/PI/故障状态机完成软件集成；请求映射由同一纯函数同时服务生产路径和板端自检，非法请求安全停机。
+- Task 7最终Rebuild为Code=30646、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)；尚未烧录或执行真实按键交互，下一步在VM断开条件下完成Task 8板端验收。
 
 ## 设计依据
 

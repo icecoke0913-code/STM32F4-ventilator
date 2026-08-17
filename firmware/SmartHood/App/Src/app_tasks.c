@@ -15,6 +15,7 @@
 #include "bsp_encoder.h"
 
 #include "control_pi.h"
+#include "mode_manager.h"
 #include "control_pi_selftest.h"
 #include "bsp_key_selftest.h"
 #include "mode_manager_selftest.h"
@@ -79,6 +80,19 @@ typedef enum
     APP_MOTOR_STATE_HIGH_PI,   /**< 高档PI闭环阶段。 */
     APP_MOTOR_STATE_FAULT      /**< 编码器无反馈故障锁存。 */
 } App_MotorState_t;
+
+/**
+ * @brief 模式电机请求映射出的纯决策结果。
+ */
+typedef struct
+{
+    App_MotorState_t state; /**< 请求对应的电机内部状态。 */
+    uint8_t duty_percent;   /**< 请求对应的初始PWM占空比。 */
+    bool stop_motor;        /**< true表示必须立即停止电机。 */
+} App_MotorRequestAction_t;
+
+static App_MotorRequestAction_t App_MotorRequestToAction(
+    ModeMotorRequest_t request);
 
 /**
  * @brief M6 PI 控制器临时板端自检开关。
@@ -169,6 +183,228 @@ static const char *App_MotorStateText(App_MotorState_t state)
         default:
             return "STOP";
     }
+}
+
+/**
+ * @brief 将运行许可状态转换为串口日志文本。
+ * @param state 当前运行许可状态。
+ * @return 与状态对应的固定字符串，非法值返回INVALID。
+ */
+static const char *App_ModeRunText(ModeRunState_t state)
+{
+    switch (state)
+    {
+        case MODE_RUN_STANDBY:
+            return "STANDBY";
+
+        case MODE_RUN_RUNNING:
+            return "RUNNING";
+
+        default:
+            return "INVALID";
+    }
+}
+
+/**
+ * @brief 将工作模式转换为串口日志文本。
+ * @param mode 当前工作模式。
+ * @return 与模式对应的固定字符串，非法值返回INVALID。
+ */
+static const char *App_ModeTypeText(ModeType_t mode)
+{
+    switch (mode)
+    {
+        case MODE_AUTO:
+            return "AUTO";
+
+        case MODE_MANUAL:
+            return "MANUAL";
+
+        case MODE_BACKFLOW:
+            return "BACKFLOW";
+
+        default:
+            return "INVALID";
+    }
+}
+
+/**
+ * @brief 将手动挡位预选转换为串口日志文本。
+ * @param level 当前手动挡位预选。
+ * @return 与挡位对应的固定字符串，非法值返回INVALID。
+ */
+static const char *App_ModeLevelText(ModeManualLevel_t level)
+{
+    switch (level)
+    {
+        case MODE_MANUAL_LOW:
+            return "LOW";
+
+        case MODE_MANUAL_HIGH:
+            return "HIGH";
+
+        default:
+            return "INVALID";
+    }
+}
+
+/**
+ * @brief 将模式故障转换为串口日志文本。
+ * @param fault 当前模式故障。
+ * @return 与故障对应的固定字符串，非法值返回INVALID。
+ */
+static const char *App_ModeFaultText(ModeFault_t fault)
+{
+    switch (fault)
+    {
+        case MODE_FAULT_NONE:
+            return "NONE";
+
+        case MODE_FAULT_ENCODER_TIMEOUT:
+            return "ENCODER_TIMEOUT";
+
+        default:
+            return "INVALID";
+    }
+}
+
+/**
+ * @brief 将模式事件处理结果转换为串口日志文本。
+ * @param result 最近一次事件处理结果。
+ * @return 与结果对应的固定字符串，非法值返回INVALID。
+ */
+static const char *App_ModeResultText(ModeResult_t result)
+{
+    switch (result)
+    {
+        case MODE_RESULT_NONE:
+            return "NONE";
+
+        case MODE_RESULT_CHANGED:
+            return "CHANGED";
+
+        case MODE_RESULT_IGNORED_MODE:
+            return "IGNORED_MODE";
+
+        case MODE_RESULT_IGNORED_FAULT:
+            return "IGNORED_FAULT";
+
+        case MODE_RESULT_FAULT_CLEARED:
+            return "FAULT_CLEARED";
+
+        default:
+            return "INVALID";
+    }
+}
+
+/**
+ * @brief 输出模式管理器的完整状态和事件处理结果。
+ * @param manager 当前模式管理器上下文。
+ * @param result 最近一次事件处理结果。
+ */
+static void App_LogModeState(const ModeManager_t *manager,
+                             ModeResult_t result)
+{
+    DebugLog_Printf(
+        "mode run=%s mode=%s level=%s fault=%s result=%s\r\n",
+        App_ModeRunText(manager->run_state),
+        App_ModeTypeText(manager->mode),
+        App_ModeLevelText(manager->manual_level),
+        App_ModeFaultText(manager->fault),
+        App_ModeResultText(result));
+}
+
+/**
+ * @brief 验证模式电机请求到内部动作的完整安全映射。
+ * @return 全部请求及非法请求映射正确时返回true。
+ */
+static bool App_MotorModeIntegration_RunSelfTests(void)
+{
+    App_MotorRequestAction_t action;
+
+    action = App_MotorRequestToAction(MODE_MOTOR_STOP);
+    if ((action.state != APP_MOTOR_STATE_STOP) ||
+        (action.duty_percent != 0U) ||
+        !action.stop_motor)
+    {
+        return false;
+    }
+
+    action = App_MotorRequestToAction(MODE_MOTOR_LOW);
+    if ((action.state != APP_MOTOR_STATE_LOW_START) ||
+        (action.duty_percent != 30U) ||
+        action.stop_motor)
+    {
+        return false;
+    }
+
+    action = App_MotorRequestToAction(MODE_MOTOR_HIGH);
+    if ((action.state != APP_MOTOR_STATE_HIGH_START) ||
+        (action.duty_percent != 30U) ||
+        action.stop_motor)
+    {
+        return false;
+    }
+
+    action = App_MotorRequestToAction(MODE_MOTOR_FAULT);
+    if ((action.state != APP_MOTOR_STATE_FAULT) ||
+        (action.duty_percent != 0U) ||
+        !action.stop_motor)
+    {
+        return false;
+    }
+
+    action = App_MotorRequestToAction((ModeMotorRequest_t)99);
+    if ((action.state != APP_MOTOR_STATE_STOP) ||
+        (action.duty_percent != 0U) ||
+        !action.stop_motor)
+    {
+        return false;
+    }
+
+    return true;
+}
+
+/**
+ * @brief 将模式电机请求转换为不访问硬件的纯决策结果。
+ * @param request ModeManager提出的电机请求。
+ * @return 请求对应的状态、初始占空比和立即停机标志。
+ *
+ * 非法请求与STOP使用相同的安全动作，禁止产生电机输出。
+ */
+static App_MotorRequestAction_t App_MotorRequestToAction(
+    ModeMotorRequest_t request)
+{
+    App_MotorRequestAction_t action;
+
+    action.state = APP_MOTOR_STATE_STOP;
+    action.duty_percent = 0U;
+    action.stop_motor = true;
+
+    switch (request)
+    {
+        case MODE_MOTOR_LOW:
+            action.state = APP_MOTOR_STATE_LOW_START;
+            action.duty_percent = APP_MOTOR_START_DUTY_PERCENT;
+            action.stop_motor = false;
+            break;
+
+        case MODE_MOTOR_HIGH:
+            action.state = APP_MOTOR_STATE_HIGH_START;
+            action.duty_percent = APP_MOTOR_START_DUTY_PERCENT;
+            action.stop_motor = false;
+            break;
+
+        case MODE_MOTOR_FAULT:
+            action.state = APP_MOTOR_STATE_FAULT;
+            break;
+
+        case MODE_MOTOR_STOP:
+        default:
+            break;
+    }
+
+    return action;
 }
 
 /**
@@ -465,6 +701,8 @@ void App_SensorTask(void *argument)
 void App_MotorTask(void *argument)
 {
     ControlPi_t controller;
+    ModeManager_t mode_manager;
+    ModeMotorRequest_t previous_request = MODE_MOTOR_STOP;
     App_MotorState_t state = APP_MOTOR_STATE_STOP;
     uint32_t sample_tick;
     uint32_t state_enter_tick;
@@ -482,7 +720,8 @@ void App_MotorTask(void *argument)
      * 任一自检失败都保持电机停止，并阻止控制任务继续启动。
      */
     if (!BSP_Key_RunSelfTests() ||
-        !ModeManager_RunSelfTests())
+        !ModeManager_RunSelfTests() ||
+        !App_MotorModeIntegration_RunSelfTests())
     {
         DebugLog_Printf("M7 self-test FAILED\r\n");
         BSP_Motor_Stop();
@@ -511,6 +750,11 @@ void App_MotorTask(void *argument)
 
     DebugLog_Printf("control PI self-test PASSED\r\n");
 #endif
+
+    /* 模式管理器先恢复安全初值，再初始化PI和电机外设。 */
+    ModeManager_Init(&mode_manager);
+    DebugLog_Printf(
+        "mode run=STANDBY mode=AUTO level=LOW fault=NONE\r\n");
 
     /* 初始化PI参数、积分范围和PWM输出范围。 */
     ControlPi_Init(&controller,
@@ -563,67 +807,52 @@ void App_MotorTask(void *argument)
         int32_t actual_count;
         int32_t target_count;
         int32_t feedforward;
+        App_MotorRequestAction_t action;
+        ModeMotorRequest_t request;
         uint32_t now_tick;
+        bool skip_log_sample = false;
 
         /* 使用绝对节拍保持稳定的50ms控制周期。 */
         sample_tick += APP_CONTROL_PERIOD_MS;
         (void)osDelayUntil(sample_tick);
         now_tick = osKernelGetTickCount();
 
-        /* 每个周期最多处理一个按键事件，且不阻塞闭环计算。 */
-        if (osMessageQueueGet(app_key_event_queue,
-                              &event,
-                              NULL,
-                              0U) == osOK)
+        /* 每个周期清空已有事件，并逐个更新和记录模式状态。 */
+        while (osMessageQueueGet(app_key_event_queue,
+                                 &event,
+                                 NULL,
+                                 0U) == osOK)
         {
-            /* Task 7接入模式管理器前，任一有效事件仍沿用M6单步切换。 */
-            (void)event;
+            ModeResult_t result;
 
-            if (state == APP_MOTOR_STATE_FAULT)
+            result = ModeManager_HandleEvent(&mode_manager, event);
+            App_LogModeState(&mode_manager, result);
+        }
+
+        /* 模式请求变化时统一复位控制器并执行纯映射给出的动作。 */
+        request = ModeManager_GetMotorRequest(&mode_manager);
+
+        if (request != previous_request)
+        {
+            ControlPi_Reset(&controller);
+            zero_sample_count = 0U;
+            action = App_MotorRequestToAction(request);
+            state = action.state;
+            duty_percent = action.duty_percent;
+
+            if (action.stop_motor)
             {
-                /* FAULT第一次按键只清除故障，不自动重新启动。 */
-                state = APP_MOTOR_STATE_STOP;
                 BSP_Motor_Stop();
-                ControlPi_Reset(&controller);
-                zero_sample_count = 0U;
-                duty_percent = 0U;
-                DebugLog_Printf(
-                    "motor fault cleared, state=STOP\r\n");
-            }
-            else if (state == APP_MOTOR_STATE_STOP)
-            {
-                /* STOP按键后先进入低档30%软启动。 */
-                state = APP_MOTOR_STATE_LOW_START;
-                state_enter_tick = now_tick;
-                ControlPi_Reset(&controller);
-                BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
-                duty_percent = APP_MOTOR_START_DUTY_PERCENT;
-                DebugLog_Printf(
-                    "motor state=LOW_START duty=30%%\r\n");
-            }
-            else if ((state == APP_MOTOR_STATE_LOW_START) ||
-                     (state == APP_MOTOR_STATE_LOW_PI))
-            {
-                /* 低档按键后重新以30%软启动进入高档。 */
-                state = APP_MOTOR_STATE_HIGH_START;
-                state_enter_tick = now_tick;
-                ControlPi_Reset(&controller);
-                BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
-                duty_percent = APP_MOTOR_START_DUTY_PERCENT;
-                DebugLog_Printf(
-                    "motor state=HIGH_START duty=30%%\r\n");
             }
             else
             {
-                /* 高档再次按键进入STOP。 */
-                state = APP_MOTOR_STATE_STOP;
-                BSP_Motor_Stop();
-                ControlPi_Reset(&controller);
-                zero_sample_count = 0U;
-                duty_percent = 0U;
-                DebugLog_Printf(
-                    "motor state=STOP duty=0%%\r\n");
+                state_enter_tick = now_tick;
+                BSP_Motor_SetDuty(action.duty_percent);
             }
+
+            /* 本周期仍执行控制，仅跳过属于前一状态的统计样本。 */
+            skip_log_sample = true;
+            previous_request = request;
         }
 
         /* 固定正转可能得到负计数，因此PI使用计数绝对值。 */
@@ -666,11 +895,18 @@ void App_MotorTask(void *argument)
 
             if (zero_sample_count >= APP_ENCODER_FAULT_SAMPLE_COUNT)
             {
-                /* 连续500ms无反馈时立即停止并锁存FAULT。 */
+                /* 连续500ms无反馈时立即停止、锁存FAULT并清零内部计数。 */
+                ModeManager_SetFault(&mode_manager,
+                                     MODE_FAULT_ENCODER_TIMEOUT);
+                previous_request = MODE_MOTOR_FAULT;
                 state = APP_MOTOR_STATE_FAULT;
                 BSP_Motor_Stop();
                 ControlPi_Reset(&controller);
+                zero_sample_count = 0U;
                 duty_percent = 0U;
+                target_count = 0L;
+                /* 本周期仍完成故障处理，仅跳过切入FAULT前的统计样本。 */
+                skip_log_sample = true;
                 DebugLog_Printf(
                     "motor state=FAULT "
                     "reason=ENCODER_TIMEOUT duty=0%%\r\n");
@@ -691,52 +927,62 @@ void App_MotorTask(void *argument)
             }
         }
 
-        /* 累计10个控制周期，每约500ms输出一次平均状态。 */
-        actual_sum += actual_count;
-        signed_delta_sum += delta_32;
-        log_sample_count++;
-
-        if (log_sample_count >= APP_CONTROL_LOG_SAMPLE_COUNT)
+        if (skip_log_sample)
         {
-            int32_t actual_average;
-            int32_t error_average;
-            const char *direction_text;
-
-            actual_average =
-                actual_sum /
-                (int32_t)APP_CONTROL_LOG_SAMPLE_COUNT;
-            error_average = target_count - actual_average;
-
-            /* 使用10个周期的计数总和判断方向，降低抖动。 */
-            if (signed_delta_sum > 0L)
-            {
-                direction_text = "forward";
-            }
-            else if (signed_delta_sum < 0L)
-            {
-                direction_text = "reverse";
-            }
-            else
-            {
-                direction_text = "stopped";
-            }
-
-            DebugLog_Printf(
-                "control state=%s target=%ld actual=%ld "
-                "error=%ld duty=%u integral=%ld "
-                "fault=%u dir=%s\r\n",
-                App_MotorStateText(state),
-                (long)target_count,
-                (long)actual_average,
-                (long)error_average,
-                (unsigned int)duty_percent,
-                (long)ControlPi_GetIntegral(&controller),
-                (unsigned int)(state == APP_MOTOR_STATE_FAULT),
-                direction_text);
-
+            /* 丢弃切换周期delta，新窗口从下一完整50ms周期开始。 */
             actual_sum = 0L;
             signed_delta_sum = 0L;
             log_sample_count = 0U;
+        }
+        else
+        {
+            /* 累计10个完整控制周期，每约500ms输出一次平均状态。 */
+            actual_sum += actual_count;
+            signed_delta_sum += delta_32;
+            log_sample_count++;
+
+            if (log_sample_count >= APP_CONTROL_LOG_SAMPLE_COUNT)
+            {
+                int32_t actual_average;
+                int32_t error_average;
+                const char *direction_text;
+
+                actual_average =
+                    actual_sum /
+                    (int32_t)APP_CONTROL_LOG_SAMPLE_COUNT;
+                error_average = target_count - actual_average;
+
+                /* 使用10个周期的计数总和判断方向，降低抖动。 */
+                if (signed_delta_sum > 0L)
+                {
+                    direction_text = "forward";
+                }
+                else if (signed_delta_sum < 0L)
+                {
+                    direction_text = "reverse";
+                }
+                else
+                {
+                    direction_text = "stopped";
+                }
+
+                DebugLog_Printf(
+                    "control state=%s target=%ld actual=%ld "
+                    "error=%ld duty=%u integral=%ld "
+                    "fault=%u dir=%s\r\n",
+                    App_MotorStateText(state),
+                    (long)target_count,
+                    (long)actual_average,
+                    (long)error_average,
+                    (unsigned int)duty_percent,
+                    (long)ControlPi_GetIntegral(&controller),
+                    (unsigned int)(state == APP_MOTOR_STATE_FAULT),
+                    direction_text);
+
+                actual_sum = 0L;
+                signed_delta_sum = 0L;
+                log_sample_count = 0U;
+            }
         }
     }
 }

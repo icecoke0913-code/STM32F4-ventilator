@@ -885,10 +885,10 @@ git commit -m "refactor: route M7 key events to MotorTask"
 ### Task 7: 将模式请求接入M6电机状态机
 
 **Files:**
-- Modify: `firmware/SmartHood/App/Src/app_tasks.c`
+- Modify/Test: `firmware/SmartHood/App/Src/app_tasks.c`（包含app内纯映射自检）
 - Modify: `docs/test-records.md`
 
-- [ ] **Step 1: 在MotorTask初始化ModeManager**
+- [x] **Step 1: 在MotorTask初始化ModeManager**
 
 局部变量增加：
 
@@ -904,48 +904,62 @@ ModeManager_Init(&mode_manager);
 DebugLog_Printf("mode run=STANDBY mode=AUTO level=LOW fault=NONE\r\n");
 ```
 
-- [ ] **Step 2: 增加状态文本和模式日志辅助函数**
+- [x] **Step 2: 增加状态文本和模式日志辅助函数**
 
 在`app_tasks.c`的电机状态文本函数附近增加：
 
 ```c
 static const char *App_ModeRunText(ModeRunState_t state)
 {
-    return (state == MODE_RUN_RUNNING) ? "RUNNING" : "STANDBY";
+    switch (state)
+    {
+        case MODE_RUN_STANDBY: return "STANDBY";
+        case MODE_RUN_RUNNING: return "RUNNING";
+        default: return "INVALID";
+    }
 }
 
 static const char *App_ModeTypeText(ModeType_t mode)
 {
     switch (mode)
     {
+        case MODE_AUTO: return "AUTO";
         case MODE_MANUAL: return "MANUAL";
         case MODE_BACKFLOW: return "BACKFLOW";
-        case MODE_AUTO:
-        default: return "AUTO";
+        default: return "INVALID";
     }
 }
 
 static const char *App_ModeLevelText(ModeManualLevel_t level)
 {
-    return (level == MODE_MANUAL_HIGH) ? "HIGH" : "LOW";
+    switch (level)
+    {
+        case MODE_MANUAL_LOW: return "LOW";
+        case MODE_MANUAL_HIGH: return "HIGH";
+        default: return "INVALID";
+    }
 }
 
 static const char *App_ModeFaultText(ModeFault_t fault)
 {
-    return (fault == MODE_FAULT_ENCODER_TIMEOUT) ?
-        "ENCODER_TIMEOUT" : "NONE";
+    switch (fault)
+    {
+        case MODE_FAULT_NONE: return "NONE";
+        case MODE_FAULT_ENCODER_TIMEOUT: return "ENCODER_TIMEOUT";
+        default: return "INVALID";
+    }
 }
 
 static const char *App_ModeResultText(ModeResult_t result)
 {
     switch (result)
     {
+        case MODE_RESULT_NONE: return "NONE";
         case MODE_RESULT_CHANGED: return "CHANGED";
         case MODE_RESULT_IGNORED_MODE: return "IGNORED_MODE";
         case MODE_RESULT_IGNORED_FAULT: return "IGNORED_FAULT";
         case MODE_RESULT_FAULT_CLEARED: return "FAULT_CLEARED";
-        case MODE_RESULT_NONE:
-        default: return "NONE";
+        default: return "INVALID";
     }
 }
 
@@ -962,7 +976,7 @@ static void App_LogModeState(const ModeManager_t *manager,
 }
 ```
 
-- [ ] **Step 3: 每周期取完当前事件队列**
+- [x] **Step 3: 每周期取完当前事件队列**
 
 用以下循环替换原来“每周期最多一个NEXT命令”的分支：
 
@@ -980,57 +994,25 @@ while (osMessageQueueGet(app_key_event_queue,
 }
 ```
 
-- [ ] **Step 4: 根据ModeMotorRequest统一进入软启动或停止**
+- [x] **Step 4: 用经过自检的纯映射统一进入软启动或停止**
 
-取得请求：
+在`app_tasks.c`内增加`App_MotorRequestAction_t`和纯函数
+`App_MotorRequestToAction()`；action包含内部状态、初始占空比和立即停机标志。
+非法请求必须安全映射为STOP、0%和立即停机。
 
-```c
-ModeMotorRequest_t request =
-    ModeManager_GetMotorRequest(&mode_manager);
-```
+先增加`App_MotorModeIntegration_RunSelfTests()`并接入M7组合自检，覆盖
+STOP、LOW、HIGH、FAULT和非法请求，再通过缺失helper的完整Rebuild取得
+`L6218E Undefined symbol App_MotorRequestToAction`红灯。
 
-请求变化时执行：
+GREEN阶段只实现这一套映射；请求变化时统一复位PI和无反馈计数，生产路径
+根据action只调用`BSP_Motor_SetDuty()`或`BSP_Motor_Stop()`，再更新
+`state`、`duty_percent`和`previous_request`。LOW/HIGH继续使用30%软启动。
 
-```c
-if (request != previous_request)
-{
-    ControlPi_Reset(&controller);
-    zero_sample_count = 0U;
+请求变化时设置`skip_log_sample`；该周期继续完成控制和故障处理，但不把
+属于前一50ms状态的编码器delta计入日志。周期末统一清空三个平均日志
+累计量，新窗口从下一完整50ms周期开始，避免跨状态混窗。
 
-    if (request == MODE_MOTOR_LOW)
-    {
-        state = APP_MOTOR_STATE_LOW_START;
-        state_enter_tick = now_tick;
-        BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
-        duty_percent = APP_MOTOR_START_DUTY_PERCENT;
-    }
-    else if (request == MODE_MOTOR_HIGH)
-    {
-        state = APP_MOTOR_STATE_HIGH_START;
-        state_enter_tick = now_tick;
-        BSP_Motor_SetDuty(APP_MOTOR_START_DUTY_PERCENT);
-        duty_percent = APP_MOTOR_START_DUTY_PERCENT;
-    }
-    else if (request == MODE_MOTOR_FAULT)
-    {
-        state = APP_MOTOR_STATE_FAULT;
-        BSP_Motor_Stop();
-        duty_percent = 0U;
-    }
-    else
-    {
-        state = APP_MOTOR_STATE_STOP;
-        BSP_Motor_Stop();
-        duty_percent = 0U;
-    }
-
-    previous_request = request;
-}
-```
-
-原有软启动、PI、日志平均计算保持不变。
-
-- [ ] **Step 5: 把编码器超时同步给ModeManager**
+- [x] **Step 5: 把编码器超时同步给ModeManager**
 
 触发无反馈故障时，在停止电机前增加：
 
@@ -1040,9 +1022,12 @@ ModeManager_SetFault(&mode_manager,
 previous_request = MODE_MOTOR_FAULT;
 ```
 
-保留`state=FAULT`、停止、PI复位和故障日志。长按清故障后，ModeManager请求变为STOP，下一周期把电机状态同步回STOP。
+保留`state=FAULT`、停止、PI复位和故障日志，同时清零无反馈计数并设置
+`skip_log_sample`；故障锁存周期的delta属于切入FAULT前的50ms，因此周期末
+丢弃该样本并清空三个平均日志累计量，新窗口从下一完整FAULT周期开始。
+长按清故障后，ModeManager请求变为STOP，下一周期把电机状态同步回STOP。
 
-- [ ] **Step 6: 删除旧NEXT顺序状态转换并Rebuild**
+- [x] **Step 6: 删除旧NEXT顺序状态转换并Rebuild**
 
 Run:
 
@@ -1050,9 +1035,10 @@ Run:
 rg -n "NEXT|APP_MOTOR_COMMAND|App_MotorPostNext" firmware/SmartHood/App
 ```
 
-Expected: 代码中无旧命令路径；Rebuild为`0 Error(s), 0 Warning(s)`。
+Expected: 代码中无旧命令路径；app内纯映射自检参与M7组合自检，生产路径
+没有复制第二套映射；Rebuild为`0 Error(s), 0 Warning(s)`。
 
-- [ ] **Step 7: 提交M7集成**
+- [x] **Step 7: 提交M7集成**
 
 ```powershell
 git add firmware/SmartHood/App/Src/app_tasks.c docs/test-records.md
