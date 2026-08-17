@@ -1189,7 +1189,7 @@ git diff --cached --check
 git commit -m "test: validate M7 key and mode management"
 ```
 
-- [ ] **Step 8: 按开发分支收尾流程合并和推送**
+- [x] **Step 8: 按开发分支收尾流程合并和推送**
 
 在新鲜Rebuild通过后，把`codex/feature-m7-key-mode`快速合并到`main`，在`main`再次Rebuild，删除已合并分支并推送：
 
