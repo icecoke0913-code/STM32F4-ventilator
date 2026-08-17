@@ -107,7 +107,7 @@ static App_MotorRequestAction_t App_MotorRequestToAction(
  * 设置为1时执行固定时间序列自检；
  * 验收完成后必须恢复为0，避免正式启动时重复运行。
  */
-#define APP_M7_SELF_TEST_ENABLED 1U
+#define APP_M7_SELF_TEST_ENABLED 0U
 
 /** 按键事件队列最多保存的事件数量。 */
 #define APP_KEY_EVENT_QUEUE_LENGTH 4U
@@ -318,6 +318,7 @@ static void App_LogModeState(const ModeManager_t *manager,
  * @brief 验证模式电机请求到内部动作的完整安全映射。
  * @return 全部请求及非法请求映射正确时返回true。
  */
+#if APP_M7_SELF_TEST_ENABLED
 static bool App_MotorModeIntegration_RunSelfTests(void)
 {
     App_MotorRequestAction_t action;
@@ -364,6 +365,7 @@ static bool App_MotorModeIntegration_RunSelfTests(void)
 
     return true;
 }
+#endif
 
 /**
  * @brief 将模式电机请求转换为不访问硬件的纯决策结果。

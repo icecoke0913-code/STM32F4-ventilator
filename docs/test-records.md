@@ -453,3 +453,17 @@
 - 静态检查确认`NEXT`、`APP_MOTOR_COMMAND`和`App_MotorPostNext`在`firmware/SmartHood/App`中均无匹配；原有300ms软启动、PI控制和约500ms平均日志保持。
 - 最终GREEN完整Keil Rebuild包含`app_tasks.c`、`mode_manager.c`、`mode_manager_selftest.c`和`bsp_key_selftest.c`，结果为Code=30646、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 18秒。
 - 本检查点仅完成软件集成和构建验证；既有ModeManager自检未修改，新增app内纯映射自检尚未烧录或执行板端运行；本次未操作硬件或执行硬件验收。Task 7 Step 1至Step 6完成，Step 7提交留给主代理。
+
+### 2026-08-17：M7无VM按键与故障交互验收
+
+- 测试期间TB6612 VM保持断开；烧录`APP_M7_SELF_TEST_ENABLED=1U`版本后MotorTask继续启动并输出模式日志，证明按键、ModeManager和app内纯映射三项组合自检均通过。
+- 上电保持`STANDBY + AUTO + LOW + NONE`和电机STOP；短按依次得到`MANUAL`、`BACKFLOW`、`AUTO`，每次只改变一个模式，控制日志持续为`state=STOP`、`duty=0`和`fault=0`。
+- 在STANDBY的MANUAL模式下，两次双击分别完成`LOW -> HIGH`和`HIGH -> LOW`，模式不变且未产生电机启动请求。
+- 长按约1秒只产生一次`RUNNING + MANUAL + LOW`事件，释放后未出现额外SHORT；无反馈时LOW控制输出达到90%软件上限，随后锁存`ENCODER_TIMEOUT`并立即变为`state=FAULT`、`target=0`、`duty=0`、`integral=0`和`fault=1`。
+- 故障中的短按和双击各产生一次`IGNORED_FAULT`，运行许可、模式、挡位和故障均保持不变；长按产生`FAULT_CLEARED`并完整恢复`STANDBY + AUTO + LOW + NONE`，同周期控制回到STOP且没有自动重启。
+- 整个测试中heartbeat持续递增，DHT11持续输出`status=OK`，样本为26.7摄氏度、69.0%RH；串口日志未出现持续乱码或任务阻塞。
+- 无VM板端交互验收完成后，将`APP_M7_SELF_TEST_ENABLED`恢复为`0U`；自检代码继续保留在工程中，但正式启动不再执行临时确定性自检。
+- 首次关闭开关后的Rebuild因app内静态自检函数仍参与编译而产生1个`#177-D declared but never referenced`警告；根因是调用被条件编译移除而函数定义未使用相同开关，未忽略该警告。
+- 将`App_MotorModeIntegration_RunSelfTests()`函数定义纳入同一`APP_M7_SELF_TEST_ENABLED`条件编译后再次完整Rebuild，结果为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)，Build Time 16秒；生产请求映射函数仍由MotorTask正常使用。
+- 关闭临时自检后的正式HEX SHA-256为`EB81C1253245E82124DA8521D648EFC3183B8CEFEA7628E532ACD5AAB96AC8A4`。
+- 结论：Task 8的VM隔离按键、模式、故障交互、系统回归和正式0警告构建全部通过；本检查点不代表接通VM后的真实电机运行验收。

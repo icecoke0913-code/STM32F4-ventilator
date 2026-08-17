@@ -323,6 +323,9 @@
 - Task 6只是不可烧录的中间构建，MotorTask尚未根据SHORT/DOUBLE/LONG区分行为；下一步必须直接执行Task 7，把事件交给ModeManager并删除旧M6单步切换。
 - Task 7已把按键事件、ModeManager请求和M6软启动/PI/故障状态机完成软件集成；请求映射由同一纯函数同时服务生产路径和板端自检，非法请求安全停机。
 - Task 7最终Rebuild为Code=30646、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)；尚未烧录或执行真实按键交互，下一步在VM断开条件下完成Task 8板端验收。
+- Task 8在VM断开条件下验证了AUTO/MANUAL/BACKFLOW短按循环、MANUAL双击LOW/HIGH往返、长按一次性、无反馈ENCODER_TIMEOUT锁存、故障中事件屏蔽和长按安全清除；所有停止路径均保持PWM为0。
+- Task 8期间heartbeat和DHT11正常，未观察到持续串口乱码或任务阻塞；临时M7自检开关在验收后恢复为`0U`，下一步进入接通VM的空载验收。
+- 关闭临时自检后的正式Rebuild为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)；Task 8无VM验收完成。
 
 ## 设计依据
 

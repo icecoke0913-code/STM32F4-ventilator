@@ -1051,13 +1051,13 @@ git commit -m "feat: integrate M7 mode state with motor control"
 - Modify: `firmware/SmartHood/App/Src/app_tasks.c`
 - Modify: `docs/test-records.md`
 
-- [ ] **Step 1: VM断开并烧录自检版本**
+- [x] **Step 1: VM断开并烧录自检版本**
 
 确认TB6612 VM断开，保留STM32、ST-Link、USB转TTL、TFT、DHT11和逻辑线。烧录`APP_M7_SELF_TEST_ENABLED=1U`的固件。
 
 Expected: `M7 self-test PASSED`；上电模式为`STANDBY AUTO LOW`。
 
-- [ ] **Step 2: 验证短按模式循环**
+- [x] **Step 2: 验证短按模式循环**
 
 每次短按后等待至少1秒，预期：
 
@@ -1067,15 +1067,15 @@ AUTO → MANUAL → BACKFLOW → AUTO
 
 每次只变化一个模式，电机保持停止。
 
-- [ ] **Step 3: 验证MANUAL待机双击**
+- [x] **Step 3: 验证MANUAL待机双击**
 
 切到MANUAL，在350ms窗口内完成双击。预期`LOW ↔ HIGH`只切换一次，不切换模式，也不启动电机。
 
-- [ ] **Step 4: 验证长按一次性和无反馈故障**
+- [x] **Step 4: 验证长按一次性和无反馈故障**
 
 长按约1秒进入RUNNING；释放后不出现额外SHORT。切到MANUAL后先进入软启动，再因VM断开进入`ENCODER_TIMEOUT`。
 
-- [ ] **Step 5: 验证故障交互**
+- [x] **Step 5: 验证故障交互**
 
 故障中短按和双击日志为`IGNORED_FAULT`。长按清故障后必须回到：
 
@@ -1085,7 +1085,7 @@ STANDBY AUTO LOW NONE
 
 电机保持停止，不自动重启。
 
-- [ ] **Step 6: 关闭临时自检开关并最终Rebuild**
+- [x] **Step 6: 关闭临时自检开关并最终Rebuild**
 
 把：
 
@@ -1101,7 +1101,7 @@ STANDBY AUTO LOW NONE
 
 Expected: `0 Error(s), 0 Warning(s)`。
 
-- [ ] **Step 7: 记录并提交无VM验收**
+- [x] **Step 7: 记录并提交无VM验收**
 
 ```powershell
 git add firmware/SmartHood/App/Src/app_tasks.c docs/test-records.md
