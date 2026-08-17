@@ -1181,7 +1181,7 @@ Get-FileHash `
 
 只把实际执行并观察通过的项目标为通过；跳过的编码器断线、扇叶、负载、堵转和温升测试必须继续标为未执行。
 
-- [ ] **Step 7: 创建最终验证提交**
+- [x] **Step 7: 创建最终验证提交**
 
 ```powershell
 git add docs/project-guide.md docs/test-records.md docs/superpowers/plans/2026-08-16-m7-single-key-mode-manager.md
