@@ -110,6 +110,12 @@ void MX_FREERTOS_Init(void) {
     Error_Handler();
   }
 
+  /* 任务创建前建立DHT11快照互斥量，避免任务启动后竞争初始化。 */
+  if (!App_SensorState_Init())
+  {
+    Error_Handler();
+  }
+
   /* USER CODE END Init */
 
   /* USER CODE BEGIN RTOS_MUTEX */

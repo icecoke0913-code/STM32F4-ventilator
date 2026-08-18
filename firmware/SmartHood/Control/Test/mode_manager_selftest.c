@@ -22,7 +22,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     ModeManager_SetFault(NULL, MODE_FAULT_ENCODER_TIMEOUT);
-    if (ModeManager_GetMotorRequest(NULL) != MODE_MOTOR_STOP)
+    if (ModeManager_GetMotorRequest(NULL, MODE_MOTOR_STOP) != MODE_MOTOR_STOP)
     {
         return false;
     }
@@ -33,7 +33,7 @@ bool ModeManager_RunSelfTests(void)
         (manager.mode != MODE_AUTO) ||
         (manager.manual_level != MODE_MANUAL_LOW) ||
         (manager.fault != MODE_FAULT_NONE) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -79,7 +79,7 @@ bool ModeManager_RunSelfTests(void)
          MODE_RESULT_CHANGED) ||
         (manager.run_state != MODE_RUN_RUNNING) ||
         (manager.mode != MODE_MANUAL) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_LOW))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_LOW))
     {
         return false;
     }
@@ -88,19 +88,19 @@ bool ModeManager_RunSelfTests(void)
     ModeManager_Init(&manager);
     manager.run_state = (ModeRunState_t)2;
     manager.mode = MODE_MANUAL;
-    if (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP)
+    if (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP)
     {
         return false;
     }
     manager.run_state = MODE_RUN_RUNNING;
     manager.mode = (ModeType_t)3;
-    if (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP)
+    if (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP)
     {
         return false;
     }
     manager.mode = MODE_MANUAL;
     manager.manual_level = (ModeManualLevel_t)2;
-    if (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP)
+    if (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP)
     {
         return false;
     }
@@ -110,7 +110,7 @@ bool ModeManager_RunSelfTests(void)
     manager.mode = MODE_MANUAL;
     manager.manual_level = MODE_MANUAL_HIGH;
     ModeManager_SetFault(&manager, MODE_FAULT_ENCODER_TIMEOUT);
-    if (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_FAULT)
+    if (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_FAULT)
     {
         return false;
     }
@@ -119,7 +119,7 @@ bool ModeManager_RunSelfTests(void)
         (manager.mode != MODE_AUTO) ||
         (manager.manual_level != MODE_MANUAL_LOW) ||
         (manager.fault != MODE_FAULT_NONE) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -143,7 +143,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     if ((manager.mode != MODE_MANUAL) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -155,7 +155,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     if ((manager.manual_level != MODE_MANUAL_HIGH) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -165,7 +165,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     if ((manager.manual_level != MODE_MANUAL_LOW) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -183,7 +183,7 @@ bool ModeManager_RunSelfTests(void)
     }
     if ((manager.run_state != MODE_RUN_RUNNING) ||
         (manager.manual_level != MODE_MANUAL_HIGH) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_HIGH))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_HIGH))
     {
         return false;
     }
@@ -192,7 +192,7 @@ bool ModeManager_RunSelfTests(void)
     if ((ModeManager_HandleEvent(&manager, BSP_KEY_EVENT_DOUBLE) !=
          MODE_RESULT_CHANGED) ||
         (manager.manual_level != MODE_MANUAL_LOW) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_LOW))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_LOW))
     {
         return false;
     }
@@ -204,7 +204,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     if ((manager.run_state != MODE_RUN_STANDBY) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -216,7 +216,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     if ((manager.run_state != MODE_RUN_RUNNING) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_LOW))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_LOW))
     {
         return false;
     }
@@ -228,7 +228,7 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
     if ((manager.mode != MODE_BACKFLOW) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_STOP))
     {
         return false;
     }
@@ -248,9 +248,11 @@ bool ModeManager_RunSelfTests(void)
         return false;
     }
 
-    /* 即使已有运行许可，AUTO仍必须映射为STOP并拒绝双击。 */
+    /* AUTO在运行许可下采用策略候选请求，并拒绝非法请求。 */
     if ((manager.run_state != MODE_RUN_RUNNING) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_STOP) ||
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_LOW) != MODE_MOTOR_LOW) ||
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_HIGH) != MODE_MOTOR_HIGH) ||
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_FAULT) != MODE_MOTOR_STOP) ||
         (ModeManager_HandleEvent(&manager, BSP_KEY_EVENT_DOUBLE) !=
          MODE_RESULT_IGNORED_MODE) ||
         (manager.mode != MODE_AUTO))
@@ -261,7 +263,7 @@ bool ModeManager_RunSelfTests(void)
     /* 编码器超时故障优先级最高，任何运行组合都映射为FAULT请求。 */
     ModeManager_SetFault(&manager, MODE_FAULT_ENCODER_TIMEOUT);
     if ((manager.fault != MODE_FAULT_ENCODER_TIMEOUT) ||
-        (ModeManager_GetMotorRequest(&manager) != MODE_MOTOR_FAULT))
+        (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) != MODE_MOTOR_FAULT))
     {
         return false;
     }
@@ -301,5 +303,5 @@ bool ModeManager_RunSelfTests(void)
            (manager.mode == MODE_AUTO) &&
            (manager.manual_level == MODE_MANUAL_LOW) &&
            (manager.fault == MODE_FAULT_NONE) &&
-           (ModeManager_GetMotorRequest(&manager) == MODE_MOTOR_STOP);
+           (ModeManager_GetMotorRequest(&manager, MODE_MOTOR_STOP) == MODE_MOTOR_STOP);
 }

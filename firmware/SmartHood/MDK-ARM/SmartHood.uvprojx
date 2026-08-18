@@ -450,6 +450,11 @@
               <FileType>1</FileType>
               <FilePath>..\Control\Src\mode_manager.c</FilePath>
             </File>
+            <File>
+              <FileName>auto_policy.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Control\Src\auto_policy.c</FilePath>
+            </File>
           </Files>
         </Group>
         <Group>
@@ -464,6 +469,11 @@
               <FileName>mode_manager_selftest.c</FileName>
               <FileType>1</FileType>
               <FilePath>..\Control\Test\mode_manager_selftest.c</FilePath>
+            </File>
+            <File>
+              <FileName>auto_policy_selftest.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Control\Test\auto_policy_selftest.c</FilePath>
             </File>
           </Files>
         </Group>

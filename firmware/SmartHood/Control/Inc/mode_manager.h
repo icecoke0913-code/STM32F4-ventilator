@@ -108,9 +108,11 @@ void ModeManager_SetFault(ModeManager_t *manager,
 /**
  * @brief 把运行许可、模式、挡位和故障映射为电机请求。
  * @param manager 模式管理器上下文。
+ * @param auto_request AUTO模式候选请求；MANUAL和BACKFLOW会忽略该参数。
  * @return STOP、LOW、HIGH或FAULT请求；非法状态安全返回STOP。
  */
 ModeMotorRequest_t ModeManager_GetMotorRequest(
-    const ModeManager_t *manager);
+    const ModeManager_t *manager,
+    ModeMotorRequest_t auto_request);
 
 #endif /* MODE_MANAGER_H */

@@ -15,10 +15,12 @@
 #include "bsp_encoder.h"
 
 #include "control_pi.h"
+#include "auto_policy.h"
 #include "mode_manager.h"
 #include "control_pi_selftest.h"
 #include "bsp_key_selftest.h"
 #include "mode_manager_selftest.h"
+#include "auto_policy_selftest.h"
 
 #include "cmsis_os2.h"
 #include "debug_log.h"
@@ -109,11 +111,20 @@ static App_MotorRequestAction_t App_MotorRequestToAction(
  */
 #define APP_M7_SELF_TEST_ENABLED 0U
 
+/** M8A临时板端自检开关，硬件验收完成后必须恢复为0U。 */
+#define APP_M8A_SELF_TEST_ENABLED 1U
+
 /** 按键事件队列最多保存的事件数量。 */
 #define APP_KEY_EVENT_QUEUE_LENGTH 4U
 
 /** 按键事件队列句柄，创建成功前保持为NULL。 */
 static osMessageQueueId_t app_key_event_queue = NULL;
+
+/** 保护DHT11快照读写的互斥量。 */
+static osMutexId_t app_sensor_mutex = NULL;
+
+/** 只保存最近一次校验成功的DHT11数据。 */
+static AutoPolicySnapshot_t app_sensor_snapshot = {0};
 
 /**
  * @brief 创建默认任务到电机任务之间的按键事件队列。
@@ -128,6 +139,63 @@ bool App_MotorControl_Init(void)
         NULL);
 
     return app_key_event_queue != NULL;
+}
+
+bool App_SensorState_Init(void)
+{
+    app_sensor_snapshot.temperature_x10 = 0;
+    app_sensor_snapshot.humidity_x10 = 0U;
+    app_sensor_snapshot.valid = false;
+    app_sensor_snapshot.updated_tick = 0U;
+    app_sensor_mutex = osMutexNew(NULL);
+
+    return app_sensor_mutex != NULL;
+}
+
+/**
+ * @brief 发布一帧已经通过DHT11校验的数据。
+ * @param data DHT11有效数据指针。
+ * @param now_tick 发布时的RTOS Tick。
+ */
+static void App_SensorState_Publish(const DHT11_Data_t *data,
+                                    uint32_t now_tick)
+{
+    if ((app_sensor_mutex == NULL) || (data == NULL))
+    {
+        return;
+    }
+
+    if (osMutexAcquire(app_sensor_mutex, 0U) == osOK)
+    {
+        app_sensor_snapshot.temperature_x10 = data->temperature_x10;
+        app_sensor_snapshot.humidity_x10 = data->humidity_x10;
+        app_sensor_snapshot.valid = true;
+        app_sensor_snapshot.updated_tick = now_tick;
+        (void)osMutexRelease(app_sensor_mutex);
+    }
+}
+
+/**
+ * @brief 复制当前DHT11快照，避免任务间读取半帧数据。
+ * @param snapshot 输出快照指针。
+ * @return 成功复制返回true，互斥量不可用或获取失败返回false。
+ */
+static bool App_SensorState_Read(AutoPolicySnapshot_t *snapshot)
+{
+    if ((app_sensor_mutex == NULL) || (snapshot == NULL))
+    {
+        return false;
+    }
+
+    if (osMutexAcquire(app_sensor_mutex, 0U) != osOK)
+    {
+        return false;
+    }
+
+    *snapshot = app_sensor_snapshot;
+    (void)osMutexRelease(app_sensor_mutex);
+
+    return true;
 }
 
 /**
@@ -180,6 +248,30 @@ static const char *App_MotorStateText(App_MotorState_t state)
             return "FAULT";
 
         case APP_MOTOR_STATE_STOP:
+        default:
+            return "STOP";
+    }
+}
+
+/**
+ * @brief 将模式管理器电机请求转换为串口日志文本。
+ * @param request AUTO策略或模式管理器生成的电机请求。
+ * @return 与请求对应的固定字符串。
+ */
+static const char *App_MotorRequestText(ModeMotorRequest_t request)
+{
+    switch (request)
+    {
+        case MODE_MOTOR_LOW:
+            return "LOW";
+
+        case MODE_MOTOR_HIGH:
+            return "HIGH";
+
+        case MODE_MOTOR_FAULT:
+            return "FAULT";
+
+        case MODE_MOTOR_STOP:
         default:
             return "STOP";
     }
@@ -313,6 +405,28 @@ static void App_LogModeState(const ModeManager_t *manager,
         App_ModeFaultText(manager->fault),
         App_ModeResultText(result));
 }
+
+#if APP_M8A_SELF_TEST_ENABLED
+/**
+ * @brief 组合验证M8A纯策略和模式请求优先级。
+ * @return 全部自检通过返回true，否则返回false。
+ */
+static bool App_M8A_RunSelfTests(void)
+{
+    ModeManager_t manager;
+
+    if (!AutoPolicy_RunSelfTests() || !ModeManager_RunSelfTests())
+    {
+        return false;
+    }
+
+    ModeManager_Init(&manager);
+    manager.run_state = MODE_RUN_RUNNING;
+
+    return ModeManager_GetMotorRequest(&manager,
+                                       MODE_MOTOR_LOW) == MODE_MOTOR_LOW;
+}
+#endif
 
 /**
  * @brief 验证模式电机请求到内部动作的完整安全映射。
@@ -677,6 +791,10 @@ void App_SensorTask(void *argument)
                 (unsigned long)(temperature_magnitude % 10U),
                 (unsigned long)(data.humidity_x10 / 10U),
                 (unsigned long)(data.humidity_x10 % 10U));
+
+            /* 只有校验成功的数据才能成为AUTO控制输入。 */
+            App_SensorState_Publish(&data,
+                                    osKernelGetTickCount());
         }
         else if (status == DHT11_STATUS_CHECKSUM_ERROR)
         {
@@ -705,6 +823,7 @@ void App_MotorTask(void *argument)
     ControlPi_t controller;
     ModeManager_t mode_manager;
     ModeMotorRequest_t previous_request = MODE_MOTOR_STOP;
+    ModeMotorRequest_t previous_auto_request = MODE_MOTOR_STOP;
     App_MotorState_t state = APP_MOTOR_STATE_STOP;
     uint32_t sample_tick;
     uint32_t state_enter_tick;
@@ -715,6 +834,22 @@ void App_MotorTask(void *argument)
     uint8_t duty_percent = 0U;
 
     (void)argument;
+
+#if APP_M8A_SELF_TEST_ENABLED
+    /* M8A自检只验证纯算法和请求映射，不初始化电机输出。 */
+    if (!App_M8A_RunSelfTests())
+    {
+        DebugLog_Printf("M8A auto policy self-test FAILED\r\n");
+        BSP_Motor_Stop();
+
+        for (;;)
+        {
+            osDelay(1000U);
+        }
+    }
+
+    DebugLog_Printf("M8A auto policy self-test PASSED\r\n");
+#endif
 
 #if APP_M7_SELF_TEST_ENABLED
     /*
@@ -810,6 +945,8 @@ void App_MotorTask(void *argument)
         int32_t target_count;
         int32_t feedforward;
         App_MotorRequestAction_t action;
+        AutoPolicySnapshot_t sensor_snapshot = {0};
+        ModeMotorRequest_t auto_request;
         ModeMotorRequest_t request;
         uint32_t now_tick;
         bool skip_log_sample = false;
@@ -831,8 +968,28 @@ void App_MotorTask(void *argument)
             App_LogModeState(&mode_manager, result);
         }
 
-        /* 模式请求变化时统一复位控制器并执行纯映射给出的动作。 */
-        request = ModeManager_GetMotorRequest(&mode_manager);
+        /* 读取最新DHT11快照；互斥量失败时使用无效快照并安全停止AUTO。 */
+        if (!App_SensorState_Read(&sensor_snapshot))
+        {
+            sensor_snapshot.valid = false;
+        }
+
+        /* 先计算AUTO候选，再由ModeManager统一处理模式和故障优先级。 */
+        auto_request = AutoPolicy_Evaluate(&sensor_snapshot,
+                                           now_tick,
+                                           previous_auto_request);
+        request = ModeManager_GetMotorRequest(&mode_manager,
+                                              auto_request);
+
+        if (mode_manager.mode == MODE_AUTO)
+        {
+            previous_auto_request = auto_request;
+        }
+        else
+        {
+            /* 离开AUTO后清除历史候选，重新进入时从STOP基线判断。 */
+            previous_auto_request = MODE_MOTOR_STOP;
+        }
 
         if (request != previous_request)
         {
@@ -948,6 +1105,7 @@ void App_MotorTask(void *argument)
                 int32_t actual_average;
                 int32_t error_average;
                 const char *direction_text;
+                uint32_t sensor_age;
 
                 actual_average =
                     actual_sum /
@@ -968,18 +1126,46 @@ void App_MotorTask(void *argument)
                     direction_text = "stopped";
                 }
 
-                DebugLog_Printf(
-                    "control state=%s target=%ld actual=%ld "
-                    "error=%ld duty=%u integral=%ld "
-                    "fault=%u dir=%s\r\n",
-                    App_MotorStateText(state),
-                    (long)target_count,
-                    (long)actual_average,
-                    (long)error_average,
-                    (unsigned int)duty_percent,
-                    (long)ControlPi_GetIntegral(&controller),
-                    (unsigned int)(state == APP_MOTOR_STATE_FAULT),
-                    direction_text);
+                if (sensor_snapshot.valid)
+                {
+                    sensor_age =
+                        (uint32_t)(now_tick -
+                                   sensor_snapshot.updated_tick);
+                    DebugLog_Printf(
+                        "control state=%s target=%ld actual=%ld "
+                        "error=%ld duty=%u integral=%ld fault=%u "
+                        "dir=%s auto=%s temp_x10=%ld humidity_x10=%u "
+                        "sensor_age=%lu\r\n",
+                        App_MotorStateText(state),
+                        (long)target_count,
+                        (long)actual_average,
+                        (long)error_average,
+                        (unsigned int)duty_percent,
+                        (long)ControlPi_GetIntegral(&controller),
+                        (unsigned int)(state == APP_MOTOR_STATE_FAULT),
+                        direction_text,
+                        App_MotorRequestText(auto_request),
+                        (long)sensor_snapshot.temperature_x10,
+                        (unsigned int)sensor_snapshot.humidity_x10,
+                        (unsigned long)sensor_age);
+                }
+                else
+                {
+                    DebugLog_Printf(
+                        "control state=%s target=%ld actual=%ld "
+                        "error=%ld duty=%u integral=%ld fault=%u "
+                        "dir=%s auto=%s temp=NA humidity=NA "
+                        "sensor_age=STALE\r\n",
+                        App_MotorStateText(state),
+                        (long)target_count,
+                        (long)actual_average,
+                        (long)error_average,
+                        (unsigned int)duty_percent,
+                        (long)ControlPi_GetIntegral(&controller),
+                        (unsigned int)(state == APP_MOTOR_STATE_FAULT),
+                        direction_text,
+                        App_MotorRequestText(auto_request));
+                }
 
                 actual_sum = 0L;
                 signed_delta_sum = 0L;

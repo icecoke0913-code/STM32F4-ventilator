@@ -108,7 +108,9 @@ void ModeManager_SetFault(ModeManager_t *manager, ModeFault_t fault)
     manager->fault = fault;
 }
 
-ModeMotorRequest_t ModeManager_GetMotorRequest(const ModeManager_t *manager)
+ModeMotorRequest_t ModeManager_GetMotorRequest(
+    const ModeManager_t *manager,
+    ModeMotorRequest_t auto_request)
 {
     /* 空上下文必须退化为安全停止。 */
     if (manager == NULL)
@@ -122,9 +124,27 @@ ModeMotorRequest_t ModeManager_GetMotorRequest(const ModeManager_t *manager)
         return MODE_MOTOR_FAULT;
     }
 
-    /* 未取得运行许可或不在手动模式时均不得驱动电机。 */
-    if ((manager->run_state != MODE_RUN_RUNNING) ||
-        (manager->mode != MODE_MANUAL))
+    /* 未取得运行许可时任何模式都不得驱动电机。 */
+    if (manager->run_state != MODE_RUN_RUNNING)
+    {
+        return MODE_MOTOR_STOP;
+    }
+
+    /* AUTO只接受策略生成的三个安全请求。 */
+    if (manager->mode == MODE_AUTO)
+    {
+        if ((auto_request == MODE_MOTOR_STOP) ||
+            (auto_request == MODE_MOTOR_LOW) ||
+            (auto_request == MODE_MOTOR_HIGH))
+        {
+            return auto_request;
+        }
+
+        return MODE_MOTOR_STOP;
+    }
+
+    /* BACKFLOW在M8A仍保持安全停止。 */
+    if (manager->mode != MODE_MANUAL)
     {
         return MODE_MOTOR_STOP;
     }

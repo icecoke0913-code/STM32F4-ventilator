@@ -22,6 +22,12 @@
 bool App_MotorControl_Init(void);
 
 /**
+ * @brief 创建DHT11快照互斥量并恢复无效初始状态。
+ * @return 创建成功返回true，否则返回false。
+ */
+bool App_SensorState_Init(void);
+
+/**
  * @brief 默认任务：执行显示自检、心跳和按键事件识别与发送。
  * @param argument FreeRTOS任务参数，本项目未使用。
  */
