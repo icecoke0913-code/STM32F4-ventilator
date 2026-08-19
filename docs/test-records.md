@@ -501,3 +501,7 @@
 - 6000ms快照过期、LOW到STOP边界和HIGH/LOW全部数值边界已由固定输入纯算法自检覆盖；为遵守禁止带电插拔传感器线路的约束，本次未执行运行中的DHT11断线测试。
 - 无VM验收后将`APP_M8A_SELF_TEST_ENABLED`恢复为`0U`；下一步生成正式固件并进行无扇叶、无机械负载的VM接通验收。
 - 关闭临时自检后的正式完整Rebuild为Code=29286、RO-data=1610、RW-data=172、ZI-data=39684，0 Error(s)、0 Warning(s)，Build Time 16秒；HEX SHA-256为`26F73313BC6786BE6570FA54ADCF3B7206D6D394317025BED18C7EB6082EDCD5`。
+- 烧录正式固件后，在无扇叶、无机械负载条件下完全断电恢复TB6612 VM/9V；上电保持STANDBY时电机没有自行启动。
+- 长按进入RUNNING AUTO后，DHT11阈值触发能够使电机正常软启动并运行；再次长按进入STANDBY时电机立即停止。用户确认整个过程无异常声音、异味、明显发热或复位。
+- 本次VM接通反馈为定性“正常”，没有记录AUTO LOW/HIGH对应的actual、duty精确样本；不把未提供的数值推断为已测量结果。
+- 结论：M8A DHT11 AUTO的纯算法、无VM请求变化、运行许可优先级、VM接通空载起停和M7交互回归通过；MQ-2融合、真实BACKFLOW、运行中DHT11断线、扇叶、负载、堵转和长时间温升仍未执行。
