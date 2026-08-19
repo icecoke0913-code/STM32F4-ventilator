@@ -33,7 +33,7 @@
 | M6-T2 | 220 RPM稳态误差 | 未测试 |
 | M6-T3 | 目标阶跃响应和堵转保护 | 未测试 |
 | M7-T1 | 单键短按、双击和长按识别 | 通过：固定Tick自检及真实PA0交互；含回绕边界 |
-| M8-T1 | 自动模式传感器响应 | 未测试 |
+| M8-T1 | 自动模式传感器响应 | M8A部分通过：DHT11触发HIGH及迟滞降为LOW；VM接通运行待测试 |
 | M8-T2 | 防回流迟滞避免反复启停 | 未测试 |
 | M9-T1 | 连续运行2小时稳定性 | 未测试 |
 
@@ -489,3 +489,15 @@
 - 临时设置`APP_M7_SELF_TEST_ENABLED=1U`后完整Rebuild为Code=30910、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)。断开VM烧录并复位，串口明确输出`M7 self-test PASSED`。
 - 板端自检通过后已将`APP_M7_SELF_TEST_ENABLED`恢复为`0U`；正式固件仍保留生产按键映射，不在每次启动时重复运行自检。
 - 恢复正式配置后的完整Rebuild为Code=28778、RO-data=1422、RW-data=168、ZI-data=39672，0 Error(s)、0 Warning(s)；HEX SHA-256仍为`EB81C1253245E82124DA8521D648EFC3183B8CEFEA7628E532ACD5AAB96AC8A4`。
+
+### 2026-08-19：M8A DHT11 AUTO无VM验收
+
+- 测试期间TB6612 VM/9V保持断开，DHT11继续使用3.3V、PD0和GND；未连接MQ-2，未安装扇叶或机械负载。
+- 临时设置`APP_M8A_SELF_TEST_ENABLED=1U`后的完整Rebuild为Code=30786、RO-data=1610、RW-data=172、ZI-data=39684，0 Error(s)、0 Warning(s)；烧录并按RST后串口明确输出`M8A auto policy self-test PASSED`。
+- 启动初期没有有效快照时日志为`auto=STOP temp=NA humidity=NA sensor_age=STALE`；首次DHT11有效帧为27.1摄氏度、64.0%RH，日志同步变为`temp_x10=271 humidity_x10=640`，AUTO候选保持STOP。
+- 轻微增加传感器附近湿度后，92.0%RH和98.0%RH样本均使AUTO候选进入HIGH；系统保持STANDBY，因此最终`control state=STOP`、`duty=0`，验证运行许可优先于AUTO候选。
+- 环境恢复到27.1摄氏度、79.0%RH和77.0%RH后，AUTO从HIGH按关闭阈值降为LOW；由于温度仍高于27.0摄氏度停止阈值，本次未强行验证LOW到STOP的真实环境边界。
+- STANDBY条件下短按、双击和模式循环回归由用户确认无问题：MANUAL挡位切换、BACKFLOW停止、返回AUTO和RST安全初值均正常，电机始终未运行。
+- 6000ms快照过期、LOW到STOP边界和HIGH/LOW全部数值边界已由固定输入纯算法自检覆盖；为遵守禁止带电插拔传感器线路的约束，本次未执行运行中的DHT11断线测试。
+- 无VM验收后将`APP_M8A_SELF_TEST_ENABLED`恢复为`0U`；下一步生成正式固件并进行无扇叶、无机械负载的VM接通验收。
+- 关闭临时自检后的正式完整Rebuild为Code=29286、RO-data=1610、RW-data=172、ZI-data=39684，0 Error(s)、0 Warning(s)，Build Time 16秒；HEX SHA-256为`26F73313BC6786BE6570FA54ADCF3B7206D6D394317025BED18C7EB6082EDCD5`。

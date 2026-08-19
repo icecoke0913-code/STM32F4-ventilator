@@ -112,7 +112,7 @@ static App_MotorRequestAction_t App_MotorRequestToAction(
 #define APP_M7_SELF_TEST_ENABLED 0U
 
 /** M8A临时板端自检开关，硬件验收完成后必须恢复为0U。 */
-#define APP_M8A_SELF_TEST_ENABLED 1U
+#define APP_M8A_SELF_TEST_ENABLED 0U
 
 /** 按键事件队列最多保存的事件数量。 */
 #define APP_KEY_EVENT_QUEUE_LENGTH 4U
